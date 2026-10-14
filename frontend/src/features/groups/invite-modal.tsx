@@ -30,8 +30,7 @@ export function InviteModal({ isOpen, groupId, groupName, onClose }: InviteModal
     const res = await apiRequest<InvitationResult>(`/api/v1/groups/${groupId}/invitations`, {
       method: "POST",
       body: JSON.stringify({
-        role,
-        expires_in_hours: expiresInHours,
+        expires_in_days: Math.max(1, Math.round(expiresInHours / 24)),
       }),
     });
 
@@ -45,7 +44,8 @@ export function InviteModal({ isOpen, groupId, groupName, onClose }: InviteModal
 
   const handleCopyToken = () => {
     if (!inviteResult) return;
-    navigator.clipboard.writeText(inviteResult.invite_token);
+    const token = inviteResult.raw_token || inviteResult.invite_token || "";
+    navigator.clipboard.writeText(token);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
