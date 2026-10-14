@@ -32,7 +32,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
@@ -54,7 +54,7 @@ function AppContent() {
             <div className="relative flex items-center gap-2">
               <button
                 onClick={() => setShowProfile(!showProfile)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition shadow-xs cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition shadow-sm cursor-pointer"
               >
                 <div className="h-7 w-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs">
                   {user.display_name.charAt(0).toUpperCase()}
@@ -93,7 +93,7 @@ function AppContent() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6">
         {authLoading ? (
           <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-400 space-y-3">
-            <div className="h-8 w-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-8 w-8 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-xs">Đang tải dữ liệu phiên làm việc...</p>
           </div>
         ) : user ? (
@@ -180,7 +180,7 @@ function AppContent() {
 
                 {/* Feature highlights */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-1">
+                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
                     <div className="flex items-center gap-2 text-sky-700 font-bold text-xs">
                       <Wallet className="h-4 w-4" />
                       <span>Ví cá nhân độc lập</span>
@@ -190,7 +190,7 @@ function AppContent() {
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-1">
+                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
                     <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs">
                       <Users className="h-4 w-4" />
                       <span>Chia tiền nhóm sòng phẳng</span>
@@ -200,7 +200,7 @@ function AppContent() {
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-1">
+                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
                     <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs">
                       <Layers className="h-4 w-4" />
                       <span>Quỹ chung minh bạch</span>
@@ -210,7 +210,7 @@ function AppContent() {
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-1">
+                  <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-1">
                     <div className="flex items-center gap-2 text-amber-700 font-bold text-xs">
                       <ShieldCheck className="h-4 w-4" />
                       <span>Bảo mật cô lập 100%</span>
