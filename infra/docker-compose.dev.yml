@@ -16,7 +16,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - flowpocket_dev_net
+
+networks:
+  flowpocket_dev_net:
+    name: flowpocket_dev_network
+    driver: bridge
 
 volumes:
   flowpocket_pgdata:
+    name: flowpocket_flowpocket_pgdata
 

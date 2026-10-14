@@ -15,13 +15,14 @@ Bộ tài liệu này là nguồn mô tả thống nhất để người phát t
 
 ## Đọc tài liệu theo thứ tự
 
-1. [`00_TONG_QUAN_FLOWPOCKET.md`](docs/00_TONG_QUAN_FLOWPOCKET.md) — mục tiêu, phạm vi và các quyết định sản phẩm.
-2. [`01_KIEN_TRUC_HE_THONG.md`](docs/01_KIEN_TRUC_HE_THONG.md) — stack, thành phần, luồng dữ liệu và cấu trúc mã nguồn.
-3. [`02_QUY_TAC_NGHIEP_VU.md`](docs/02_QUY_TAC_NGHIEP_VU.md) — cách tính tiền, chi tiêu nhóm, quỹ và công nợ.
-4. [`03_THIET_KE_CSDL.md`](docs/03_THIET_KE_CSDL.md) — các bảng, quan hệ và ràng buộc dữ liệu dự kiến.
-5. [`04_BAO_MAT_PHAN_QUYEN.md`](docs/04_BAO_MAT_PHAN_QUYEN.md) — riêng tư, xác thực, quyền truy cập và các yêu cầu bảo mật.
-6. [`05_KE_HOACH_TRIEN_KHAI.md`](docs/05_KE_HOACH_TRIEN_KHAI.md) — các milestone và tiêu chí nghiệm thu.
+1. [`00_TONG_QUAN_FLOWPOCKET.md`](00_TONG_QUAN_FLOWPOCKET.md) — mục tiêu, phạm vi và các quyết định sản phẩm.
+2. [`01_KIEN_TRUC_HE_THONG.md`](01_KIEN_TRUC_HE_THONG.md) — stack, thành phần, luồng dữ liệu và cấu trúc mã nguồn.
+3. [`02_QUY_TAC_NGHIEP_VU.md`](02_QUY_TAC_NGHIEP_VU.md) — cách tính tiền, chi tiêu nhóm, quỹ và công nợ.
+4. [`03_THIET_KE_CSDL.md`](03_THIET_KE_CSDL.md) — các bảng, quan hệ và ràng buộc dữ liệu dự kiến.
+5. [`04_BAO_MAT_PHAN_QUYEN.md`](04_BAO_MAT_PHAN_QUYEN.md) — riêng tư, xác thực, quyền truy cập và các yêu cầu bảo mật.
+6. [`05_KE_HOACH_TRIEN_KHAI.md`](05_KE_HOACH_TRIEN_KHAI.md) — các milestone và tiêu chí nghiệm thu.
 7. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.
+
 
 ## Quy ước quan trọng
 

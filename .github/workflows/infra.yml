@@ -1,0 +1,32 @@
+name: Infrastructure CI
+
+on:
+  push:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+
+jobs:
+  validate:
+    name: Validate Docker Compose Configurations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate dev compose file
+        run: docker compose -f infra/docker-compose.dev.yml config
+
+      - name: Validate prod compose file
+        env:
+          POSTGRES_DB: flowpocket
+          POSTGRES_USER: flowpocket_app
+          POSTGRES_PASSWORD: test_password
+          APP_SECRET_KEY: test_secret_key_at_least_32_bytes_len!
+        run: docker compose -f infra/docker-compose.prod.yml config
+
