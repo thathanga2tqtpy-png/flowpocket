@@ -118,7 +118,27 @@ export function GroupDashboard({ currentUserId }: GroupDashboardProps) {
     ]);
     setDetailLoading(false);
 
-    if (detailRes.data) setGroupDetail(detailRes.data);
+    if (detailRes.data) {
+      const raw: any = detailRes.data;
+      const normalizedGroup: GroupItem = raw.group || {
+        id: raw.id,
+        name: raw.name,
+        description: raw.description,
+        currency: raw.currency || "VND",
+        created_by_user_id: raw.created_by_user_id,
+        is_active: raw.status === "ACTIVE",
+        created_at: raw.created_at,
+        updated_at: raw.updated_at || raw.created_at,
+        current_user_role: raw.current_user_role || "MEMBER",
+        member_count: raw.member_count || raw.members?.length || 1,
+      };
+
+      setGroupDetail({
+        ...normalizedGroup,
+        group: normalizedGroup,
+        members: raw.members || [],
+      });
+    }
     if (expRes.data) setExpenses(expRes.data);
     if (fundRes.data) setFund(fundRes.data);
     if (fundTxRes.data) setFundTransactions(fundTxRes.data);
@@ -371,11 +391,16 @@ export function GroupDashboard({ currentUserId }: GroupDashboardProps) {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-800">{groupDetail.group.name}</h3>
-                        {groupDetail.group.current_user_role && roleBadge(groupDetail.group.current_user_role)}
+                        <h3 className="text-lg font-bold text-slate-800">
+                          {groupDetail.group?.name || groupDetail.name}
+                        </h3>
+                        {(groupDetail.group?.current_user_role || groupDetail.current_user_role) &&
+                          roleBadge(groupDetail.group?.current_user_role || groupDetail.current_user_role!)}
                       </div>
-                      {groupDetail.group.description && (
-                        <p className="text-xs text-slate-500 mt-0.5">{groupDetail.group.description}</p>
+                      {(groupDetail.group?.description || groupDetail.description) && (
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {groupDetail.group?.description || groupDetail.description}
+                        </p>
                       )}
                     </div>
 

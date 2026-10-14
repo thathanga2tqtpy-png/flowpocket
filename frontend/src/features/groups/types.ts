@@ -27,7 +27,7 @@ export interface GroupMemberItem {
   email?: string | null;
 }
 
-export interface GroupDetail {
+export interface GroupDetail extends GroupItem {
   group: GroupItem;
   members: GroupMemberItem[];
 }
