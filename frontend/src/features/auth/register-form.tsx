@@ -32,28 +32,28 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="flex items-center gap-2 p-3 text-xs bg-rose-50 text-rose-700 border border-rose-200 rounded-lg">
+        <div className="flex items-center gap-2 p-3 text-xs bg-rose-50 text-rose-700 border border-rose-200 rounded-xl">
           <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
           <span>{error}</span>
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Tên hiển thị
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+          Tên hiển thị của bạn
         </label>
         <input
           type="text"
           required
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="Ví dụ: Nguyễn Văn A"
-          className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
+          placeholder="Ví dụ: Minh Quân, Thu Trang..."
+          className="w-full px-3.5 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 transition-all placeholder:text-slate-400"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
           Địa chỉ Email
         </label>
         <input
@@ -61,14 +61,14 @@ export function RegisterForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="ban@example.com"
-          className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
+          placeholder="name@example.com"
+          className="w-full px-3.5 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 transition-all placeholder:text-slate-400"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Mật khẩu (Tối thiểu 8 ký tự)
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+          Mật khẩu bí mật (tối thiểu 8 ký tự)
         </label>
         <input
           type="password"
@@ -77,14 +77,14 @@ export function RegisterForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
+          className="w-full px-3.5 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 transition-all placeholder:text-slate-400"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50 cursor-pointer"
       >
         {loading ? (
           <>
@@ -94,11 +94,10 @@ export function RegisterForm() {
         ) : (
           <>
             <UserPlus className="h-4 w-4" />
-            <span>Tạo tài khoản mới</span>
+            <span>Tạo tài khoản ngay</span>
           </>
         )}
       </button>
     </form>
   );
 }
-
