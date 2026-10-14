@@ -2,6 +2,7 @@ from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.health import check_database_health
+from app.api.v1.router import api_v1_router
 
 app = FastAPI(
     title="FlowPocket API",
@@ -52,3 +53,6 @@ def api_v1_health(response: Response):
     """API v1 health status endpoint"""
     return readiness_check(response)
 
+
+# Mount API v1 Routers
+app.include_router(api_v1_router)
