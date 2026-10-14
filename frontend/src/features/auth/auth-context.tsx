@@ -77,6 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiRequest("/api/v1/auth/logout", { method: "POST" });
     } finally {
       setUser(null);
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+      }
     }
   };
 
