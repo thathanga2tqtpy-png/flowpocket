@@ -8,6 +8,7 @@ import { LoginForm } from "@/features/auth/login-form";
 import { RegisterForm } from "@/features/auth/register-form";
 import { UserProfile } from "@/features/auth/user-profile";
 import { PersonalDashboard } from "@/features/personal-finance/personal-dashboard";
+import { GroupDashboard } from "@/features/groups/group-dashboard";
 
 interface HealthStatus {
   status: string;
@@ -19,6 +20,7 @@ interface HealthStatus {
 function MainDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [financeTab, setFinanceTab] = useState<"personal" | "groups">("personal");
   const [showProfile, setShowProfile] = useState(false);
 
   const [healthLoading, setHealthLoading] = useState(true);
@@ -44,7 +46,7 @@ function MainDashboard() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 p-3 sm:p-6 flex items-center justify-center">
-      <div className={`w-full ${user ? "max-w-2xl" : "max-w-md"} bg-white rounded-2xl shadow-xl border border-slate-200/80 p-5 sm:p-7 space-y-6 transition-all duration-300`}>
+      <div className={`w-full ${user ? "max-w-4xl" : "max-w-md"} bg-white rounded-2xl shadow-xl border border-slate-200/80 p-5 sm:p-7 space-y-6 transition-all duration-300`}>
         {/* App Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -87,7 +89,38 @@ function MainDashboard() {
                 <UserProfile />
               </div>
             )}
-            <PersonalDashboard />
+
+            {/* Navigation Tabs for Personal vs Groups */}
+            <div className="flex border border-slate-200 rounded-xl p-1 bg-slate-100/80 max-w-sm">
+              <button
+                onClick={() => setFinanceTab("personal")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  financeTab === "personal"
+                    ? "bg-white text-sky-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <WalletIcon className="h-3.5 w-3.5" />
+                Cá nhân
+              </button>
+              <button
+                onClick={() => setFinanceTab("groups")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  financeTab === "groups"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span className="text-sm">👥</span>
+                Chi tiêu nhóm
+              </button>
+            </div>
+
+            {financeTab === "personal" ? (
+              <PersonalDashboard />
+            ) : (
+              <GroupDashboard currentUserId={user.id} />
+            )}
           </div>
         ) : (
           /* Unauthenticated Auth Form (Phase 2) */
