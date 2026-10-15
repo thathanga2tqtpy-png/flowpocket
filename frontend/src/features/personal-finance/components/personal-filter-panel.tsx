@@ -151,7 +151,13 @@ export function PersonalFilterPanel({
           </label>
           <select
             value={selectedSource}
-            onChange={(e) => onSourceChange(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              onSourceChange(val);
+              if (val === "PERSONAL") {
+                onGroupNameChange("");
+              }
+            }}
             className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 bg-white"
           >
             <option value="">-- Tất cả nguồn --</option>
@@ -166,10 +172,23 @@ export function PersonalFilterPanel({
           </label>
           <select
             value={selectedGroupName}
-            onChange={(e) => onGroupNameChange(e.target.value)}
-            className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 bg-white"
+            disabled={selectedSource === "PERSONAL"}
+            onChange={(e) => {
+              const val = e.target.value;
+              onGroupNameChange(val);
+              if (val && selectedSource !== "GROUP") {
+                onSourceChange("GROUP");
+              }
+            }}
+            className={`w-full px-2.5 py-1.5 text-xs border rounded-lg ${
+              selectedSource === "PERSONAL"
+                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                : "border-slate-200 text-slate-800 bg-white"
+            }`}
           >
-            <option value="">-- Tất cả nhóm --</option>
+            <option value="">
+              {selectedSource === "PERSONAL" ? "-- Không áp dụng cho cá nhân --" : "-- Tất cả nhóm --"}
+            </option>
             {groups.map((g) => (
               <option key={g.id} value={g.name}>
                 {g.name}

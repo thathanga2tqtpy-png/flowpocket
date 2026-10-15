@@ -43,12 +43,15 @@ Một khoản chi nhóm có thể làm giảm tiền trong ví của người tr
 ### Nhóm tài chính
 
 - Tạo nhóm, đổi tên và cấu hình cơ bản.
-- Mời thành viên bằng liên kết/mã mời có hạn sử dụng.
+- Mời thành viên linh hoạt:
+  - Mời trực tiếp qua địa chỉ Gmail của tài khoản đã đăng ký.
+  - Tạo liên kết mời công khai đa dụng (`?join_token=...`) chia sẻ cho nhiều người tham gia cùng lúc.
 - Role: `OWNER`, `ADMIN`, `MEMBER`.
+- Quản trị thành viên: chuyển giao quyền chủ nhóm (Ownership Transfer), thăng/hạ cấp Admin/Member, xóa thành viên an toàn (giữ nguyên sổ cái tài chính lịch sử).
 - Ghi nhận chi phí nhóm, người thanh toán và cách chia.
 - Chia đều hoặc nhập số tiền từng người chịu.
 - Xem tổng chi, phần mỗi thành viên chịu và số tiền đang nợ/được nhận.
-- Tạo yêu cầu quyết toán và để người nhận xác nhận.
+- Tạo yêu cầu quyết toán và để người nhận xác nhận; tích hợp tạo mã VietQR Napas chuyển khoản nhanh.
 
 ### Quỹ chung
 
@@ -57,10 +60,12 @@ Một khoản chi nhóm có thể làm giảm tiền trong ví của người tr
 - Hiển thị số dư quỹ và lịch sử giao dịch.
 - Khoản chi từ quỹ được phân loại riêng, không tạo khoản nợ giữa các thành viên chỉ vì bản thân quỹ đã thanh toán.
 
-### PWA
+### PWA & Trải nghiệm Thông minh
 
 - Giao diện responsive trên điện thoại và desktop.
 - Có manifest và biểu tượng để cài đặt khi trình duyệt hỗ trợ.
+- Ô nhập tiền tệ thông minh (`MoneyInput`) tự động định dạng hàng nghìn, phím tắt `+000`, `+50k` và đọc tiền thành chữ tiếng Việt.
+- Tích hợp sinh mã VietQR Napas chuẩn ngân hàng kèm số tiền và nội dung chuyển khoản tự động.
 - Có trạng thái tải, lỗi, rỗng và xác nhận cho các thao tác tài chính.
 - MVP online-first: có thể cache các tài nguyên tĩnh phù hợp, nhưng không cache response API chứa dữ liệu tài chính nhạy cảm và không cho phép tạo giao dịch offline.
 
@@ -68,8 +73,8 @@ Một khoản chi nhóm có thể làm giảm tiền trong ví của người tr
 
 Trừ khi repository đã có nền tảng tốt và việc bổ sung không làm ảnh hưởng MVP, chưa triển khai:
 
-- Kết nối ngân hàng hoặc tự động đọc SMS biến động số dư.
-- Thanh toán thực tế qua ngân hàng, ví điện tử hoặc QR thanh toán.
+- Kết nối Open Banking đọc tự động biến động số dư SMS từ ngân hàng (hiện tại hỗ trợ sinh mã VietQR để người dùng quét và chuyển tiền thủ công an toàn).
+- Cổng thanh toán tự động khấu trừ thẻ tín dụng quốc tế / Payment Gateway trung gian.
 - Đầu tư, chứng khoán, tiền mã hóa, khoản vay có lãi hoặc nghiệp vụ kế toán doanh nghiệp.
 - Đồng bộ giao dịch offline có xử lý xung đột.
 - Microservices, hệ thống phân tán hoặc nhiều database.

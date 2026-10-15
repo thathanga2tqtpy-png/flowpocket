@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { personalFinanceService } from "./personal-finance-service";
 import { Wallet as WalletIcon, Plus, X, Loader2, AlertCircle, Building2, Pencil, Check } from "lucide-react";
 import { MoneyInput } from "@/components/ui/money-input";
 import { qrPaymentService } from "@/features/qr-payments/qr-service";
@@ -101,14 +101,8 @@ export function WalletModal({ isOpen, onClose, onSuccess, walletToEdit }: Wallet
     };
 
     const res = isEditing
-      ? await apiRequest(`/api/v1/wallets/${walletToEdit!.id}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        })
-      : await apiRequest("/api/v1/wallets", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+      ? await personalFinanceService.updateWallet(walletToEdit!.id, payload)
+      : await personalFinanceService.createWallet(payload as any);
 
     if (res.data) {
       onSuccess();

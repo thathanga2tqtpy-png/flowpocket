@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   GroupDebtOverview,
   GroupSettlement,
@@ -8,7 +8,20 @@ import {
   DebtSimplificationItem,
 } from "../types";
 import { formatAuditDateTime, formatFullAuditTimestamp } from "@/lib/date-utils";
-import { Check, X, ArrowLeftRight, Clock } from "lucide-react";
+import {
+  Check,
+  X,
+  ArrowRight,
+  Clock,
+  BellRing,
+  CheckCircle2,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  Copy,
+  ArrowLeftRight,
+} from "lucide-react";
 
 interface GroupDebtSectionProps {
   debtsOverview: GroupDebtOverview;
@@ -35,38 +48,47 @@ export function GroupDebtSection({
   onOpenGeneralSettlement,
   onShowNotification,
 }: GroupDebtSectionProps) {
+  // Accordion toggles cho các mục phụ
+  const [showBalanceTable, setShowBalanceTable] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
   const pendingForMe = settlements.filter(
-    (s) => s.to_user_id === currentUserId && s.status === "PENDING",
+    (s) => s.to_user_id === currentUserId && s.status === "PENDING"
   );
 
-  const groupName =
-    groupDetail.group?.name || groupDetail.name || "nhóm";
+  const groupName = groupDetail.group?.name || groupDetail.name || "nhóm";
+  const userNet = debtsOverview.current_user_net || 0;
+
+  const formatVND = (v: number) =>
+    Math.abs(v).toLocaleString("vi-VN") + " đ";
+
+  const allDebts = debtsOverview.suggested_settlements || [];
 
   return (
-    <div className="space-y-4">
-      {/* 1. KHOẢN TIỀN NGƯỜI KHÁC VỪA TRẢ ĐANG CHỜ BẠN XÁC NHẬN */}
+    <div className="space-y-3.5">
+      {/* 1. THÔNG BÁO: Khoản tiền người khác vừa chuyển trả đang chờ duyệt (Ưu tiên số 1) */}
       {pendingForMe.length > 0 && (
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
-          <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-xs">
-            <Check className="h-4 w-4 text-emerald-600" />
-            <span>Khoản tiền chờ bạn xác nhận ({pendingForMe.length})</span>
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl space-y-2.5 animate-in fade-in">
+          <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+            <span className="flex items-center gap-1.5">
+              <BellRing className="h-4 w-4 text-amber-600 animate-bounce" />
+              Bạn có {pendingForMe.length} khoản tiền thành viên báo đã trả:
+            </span>
           </div>
 
           <div className="space-y-2">
             {pendingForMe.map((s) => (
               <div
                 key={s.id}
-                className="p-3 bg-white rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
+                className="p-3 bg-white rounded-xl border border-amber-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs shadow-2xs"
               >
                 <div>
-                  <div className="text-xs text-slate-700">
-                    Thành viên <strong>{s.from_user_name}</strong> báo đã chuyển:
-                  </div>
-                  <div className="text-sm font-bold text-slate-900">
-                    +{s.amount.toLocaleString("vi-VN")} đ
+                  <div className="text-slate-800">
+                    Thành viên <strong>{s.from_user_name}</strong> báo đã chuyển:{" "}
+                    <strong className="text-emerald-600 text-sm">+{formatVND(s.amount)}</strong>
                   </div>
                   {s.note && (
-                    <div className="text-xs text-slate-500 italic">
+                    <div className="text-[11px] text-slate-500 italic mt-0.5">
                       Ghi chú: {s.note}
                     </div>
                   )}
@@ -75,15 +97,15 @@ export function GroupDebtSection({
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-1 sm:pt-0">
                   <button
                     onClick={() => onRejectSettlement(s)}
-                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs transition"
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs transition cursor-pointer"
                   >
-                    Từ chối
+                    Chưa nhận
                   </button>
                   <button
                     onClick={() => onConfirmSettlement(s)}
-                    className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-xs font-medium transition"
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
                   >
-                    Xác nhận nhận tiền
+                    Đã nhận & Cộng ví
                   </button>
                 </div>
               </div>
@@ -92,261 +114,149 @@ export function GroupDebtSection({
         </div>
       )}
 
-      {/* 2. THẺ TRẠNG THÁI CÔNG NỢ CỦA BẠN */}
-      <div className="p-4 rounded-lg border border-slate-200 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div>
-          <span className="text-xs text-slate-500 block mb-0.5">
-            Trạng thái công nợ của bạn
-          </span>
-          <div className="text-sm sm:text-base font-bold text-slate-900">
-            {debtsOverview.current_user_net > 0
-              ? `Bạn được nhận lại: +${debtsOverview.current_user_net.toLocaleString("vi-VN")} đ`
-              : debtsOverview.current_user_net < 0
-                ? `Bạn cần trả nhóm: ${debtsOverview.current_user_net.toLocaleString("vi-VN")} đ`
-                : "Bạn đã sòng phẳng với nhóm (0 đ)"}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-xl">
-            {debtsOverview.current_user_net > 0
-              ? "Các thành viên khác sẽ chuyển trả tiền cho bạn. Khi nhận được tiền, bạn bấm nút 'Đã nhận & Cộng vào ví' ở danh sách phía trên."
-              : debtsOverview.current_user_net < 0
-                ? "Vui lòng chuyển tiền cho các thành viên bên dưới và bấm nút 'Chuyển tiền trả nợ'."
-                : "Không ai nợ bạn và bạn cũng không nợ ai trong nhóm này."}
-          </p>
-        </div>
-
-        {debtsOverview.current_user_net < 0 ? (
-          <button
-            onClick={onOpenGeneralSettlement}
-            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 shrink-0"
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            <span>Chuyển tiền trả nợ</span>
-          </button>
-        ) : debtsOverview.current_user_net > 0 ? (
-          <button
-            onClick={() => {
-              const msg = `[FlowPocket] Nhắc nợ: Mình có khoản ứng trước +${debtsOverview.current_user_net.toLocaleString("vi-VN")} đ trong "${groupName}". Mọi người kiểm tra và chuyển khoản giúp mình nhé. Cảm ơn cả nhà.`;
-              navigator.clipboard.writeText(msg);
-              onShowNotification(
-                "Đã sao chép tin nhắn nhắc nợ vào bộ nhớ tạm.",
-              );
-            }}
-            className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition shrink-0"
-          >
-            <span>Sao chép tin nhắn nhắc nợ</span>
-          </button>
-        ) : null}
-      </div>
-
-      {/* 3. GỢI Ý THANH TOÁN TỐI GIẢN (AI TRẢ AI ĐỂ HẾT NỢ NHÓM) */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-        <div className="flex justify-between items-center">
+      {/* 2. DANH SÁCH CÔNG NỢ TINH GỌN (Phong cách tinh tế, nền trắng, viền nhạt) */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
           <div>
-            <h4 className="font-semibold text-slate-800 text-xs">
-              Gợi ý thanh toán
-            </h4>
-            <p className="text-[11px] text-slate-400">
-              Các khoản chuyển tiền để nhóm hết công nợ
+            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <ArrowLeftRight className="h-3.5 w-3.5 text-slate-500" />
+              <span>Công nợ cần thanh toán ({allDebts.length})</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Các khoản thanh toán trực tiếp để nhóm sòng phẳng
             </p>
           </div>
 
-          {debtsOverview.current_user_net < 0 ? (
-            <button
-              onClick={onOpenGeneralSettlement}
-              className="text-xs text-slate-700 hover:underline font-medium flex items-center gap-1"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5" />
-              Chuyển trả tiền nợ
-            </button>
-          ) : debtsOverview.current_user_net > 0 ? (
-            <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              Bạn là người nhận tiền
-            </span>
-          ) : (
-            <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-              Đã sòng phẳng
-            </span>
-          )}
+          <button
+            onClick={onOpenGeneralSettlement}
+            className="text-[11px] text-slate-500 hover:text-slate-800 font-medium cursor-pointer flex items-center gap-1"
+          >
+            <span>Tự ghi nhận</span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
         </div>
 
-        {debtsOverview.suggested_settlements.length === 0 ? (
-          <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Tất cả thành viên hiện đã thanh toán sòng phẳng.
+        {allDebts.length === 0 ? (
+          <div className="py-7 text-center space-y-1.5">
+            <div className="h-9 w-9 mx-auto rounded-full bg-slate-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-700">
+              Nhóm đã sòng phẳng!
+            </p>
+            <p className="text-[11px] text-slate-400">
+              Hiện tại không có thành viên nào nợ tiền trong nhóm.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {debtsOverview.suggested_settlements.map((item, idx) => {
+          <div className="divide-y divide-slate-100">
+            {allDebts.map((item, idx) => {
               const isMeDebtor = item.from_user_id === currentUserId;
               const isMeReceiver = item.to_user_id === currentUserId;
+
+              // Lấy chữ cái đầu làm avatar tối giản
+              const otherPersonName = isMeDebtor
+                ? item.to_user_name
+                : isMeReceiver
+                ? item.from_user_name
+                : `${item.from_user_name} → ${item.to_user_name}`;
+
+              const initials = otherPersonName
+                .split(" ")
+                .map((n) => n[0])
+                .slice(-2)
+                .join("")
+                .toUpperCase();
 
               return (
                 <div
                   key={idx}
-                  className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 flex flex-col justify-between gap-2"
+                  className="py-3.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition"
                 >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={
-                          isMeDebtor
-                            ? "text-slate-900 font-semibold"
-                            : "text-slate-700"
-                        }
-                      >
-                        {item.from_user_name}
-                        {isMeDebtor && " (Bạn)"}
-                      </span>
-                      <span className="text-slate-400">→</span>
-                      <span
-                        className={
-                          isMeReceiver
-                            ? "text-emerald-700 font-semibold"
-                            : "text-slate-700"
-                        }
-                      >
-                        {item.to_user_name}
-                        {isMeReceiver && " (Bạn)"}
-                      </span>
+                  {/* Trái: Avatar + Tên người giao dịch */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        isMeDebtor
+                          ? "bg-rose-50 text-rose-600 border border-rose-100"
+                          : isMeReceiver
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {initials}
                     </div>
 
-                    <span className="font-semibold text-xs text-slate-900">
-                      {item.amount.toLocaleString("vi-VN")} đ
-                    </span>
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        {isMeDebtor ? (
+                          <>
+                            <span>Chuyển cho:</span>
+                            <span className="text-slate-900 font-extrabold">{item.to_user_name}</span>
+                          </>
+                        ) : isMeReceiver ? (
+                          <>
+                            <span className="text-slate-900 font-extrabold">{item.from_user_name}</span>
+                            <span className="text-slate-400 font-normal">nợ bạn</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{item.from_user_name}</span>
+                            <ArrowRight className="h-3 w-3 text-slate-300" />
+                            <span>{item.to_user_name}</span>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="text-[11px] text-slate-400">
+                        {isMeDebtor
+                          ? "Khoản nợ bạn cần thanh toán"
+                          : isMeReceiver
+                          ? "Thành viên này cần chuyển trả cho bạn"
+                          : "Khoản nợ nội bộ giữa các thành viên"}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200 text-xs">
+                  {/* Phải: Số tiền + Nút hành động nhã nhặn */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3.5 pl-12 sm:pl-0">
+                    <span
+                      className={`text-sm sm:text-base font-bold ${
+                        isMeDebtor
+                          ? "text-rose-600"
+                          : isMeReceiver
+                          ? "text-emerald-700"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {isMeReceiver ? "+" : isMeDebtor ? "-" : ""}
+                      {formatVND(item.amount)}
+                    </span>
+
+                    {/* Nút hành động thanh lịch */}
                     {isMeDebtor ? (
                       <button
                         onClick={() => onOpenSettlementFor(item)}
-                        className="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium text-center transition"
+                        className="py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-98"
                       >
-                        Chuyển {item.amount.toLocaleString("vi-VN")} đ cho{" "}
-                        {item.to_user_name}
+                        <CreditCard className="h-3.5 w-3.5 text-slate-300" />
+                        <span>Trả nợ</span>
                       </button>
                     ) : isMeReceiver ? (
-                      <div className="w-full flex justify-between items-center">
-                        <span className="text-slate-500 text-xs">
-                          Chờ {item.from_user_name} chuyển tiền
-                        </span>
-                        <button
-                          onClick={() => {
-                            const text = `FlowPocket: @${item.from_user_name} ơi, bạn có khoản cần chuyển ${item.amount.toLocaleString("vi-VN")} đ cho mình trong nhóm "${groupName}". Chuyển khoản giúp mình nhé!`;
-                            navigator.clipboard.writeText(text);
-                            onShowNotification(
-                              `Đã sao chép tin nhắn nhắc ${item.from_user_name}!`,
-                            );
-                          }}
-                          className="text-xs text-slate-600 hover:text-slate-900 underline font-medium"
-                        >
-                          Nhắc nợ
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-xs">
-                        Giao dịch nội bộ
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 4. LỊCH SỬ CHUYỂN TRẢ NỢ */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
-        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5 text-sky-600" />
-          Lịch sử chuyển trả nợ giữa các thành viên ({settlements.length})
-        </h4>
-
-        {settlements.length === 0 ? (
-          <div className="text-center py-6 text-xs text-slate-400">
-            Chưa có giao dịch quyết toán nào.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {settlements.map((s) => {
-              const isReceiver = s.to_user_id === currentUserId;
-              const isSender = s.from_user_id === currentUserId;
-              const isPending = s.status === "PENDING";
-
-              return (
-                <div
-                  key={s.id}
-                  className="py-2.5 flex justify-between items-center gap-2 text-xs"
-                >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-800">
-                        {s.from_user_name}
-                      </span>
-                      <span className="text-slate-400">→</span>
-                      <span className="font-semibold text-slate-800">
-                        {s.to_user_name}
-                      </span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
-                          s.status === "CONFIRMED"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : s.status === "PENDING"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {s.status === "CONFIRMED"
-                          ? "Đã xác nhận"
-                          : s.status === "PENDING"
-                            ? "Chờ xác nhận"
-                            : s.status === "REJECTED"
-                              ? "Đã từ chối"
-                              : "Đã hủy"}
-                      </span>
-                    </div>
-                    <div
-                      className="text-[11px] text-slate-400"
-                      title={`Thời gian tạo yêu cầu: ${formatFullAuditTimestamp(s.created_at)}`}
-                    >
-                      {formatAuditDateTime(s.created_at)}
-                      {s.note && ` • ${s.note}`}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900">
-                      {s.amount.toLocaleString("vi-VN")} đ
-                    </span>
-
-                    {/* Recipient confirm/reject actions */}
-                    {isPending && isReceiver && (
-                      <div className="flex gap-1 pl-1">
-                        <button
-                          onClick={() => onConfirmSettlement(s)}
-                          className="p-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded"
-                          title="Xác nhận đã nhận tiền"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onRejectSettlement(s)}
-                          className="p-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded"
-                          title="Từ chối"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Sender cancel action */}
-                    {isPending && isSender && (
                       <button
-                        onClick={() => onCancelSettlement(s)}
-                        className="text-[11px] text-slate-400 hover:text-rose-600 pl-1"
+                        onClick={() => {
+                          const text = `FlowPocket: @${item.from_user_name} ơi, bạn có khoản cần chuyển ${formatVND(
+                            item.amount
+                          )} cho mình trong nhóm "${groupName}". Chuyển khoản giúp mình nhé! Cảm ơn bạn.`;
+                          navigator.clipboard.writeText(text);
+                          onShowNotification(`Đã sao chép tin nhắn nhắc ${item.from_user_name}!`);
+                        }}
+                        className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition flex items-center gap-1.5 cursor-pointer active:scale-98"
                       >
-                        Hủy
+                        <Copy className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Nhắc nợ</span>
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               );
@@ -355,51 +265,188 @@ export function GroupDebtSection({
         )}
       </div>
 
-      {/* 5. BẢNG CÂN ĐỐI CÔNG NỢ TỪNG THÀNH VIÊN */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
-        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
-          Bảng cân đối công nợ từng thành viên
-        </h4>
+      {/* 3. BẢNG TỔNG KẾT CHI - THU (Accordion Thu Gọn Mặc Định) */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setShowBalanceTable(!showBalanceTable)}
+          className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-slate-500" />
+            <span>Bảng tổng kết chi tiêu từng người</span>
+            <span className="text-[11px] font-normal text-slate-400">
+              ({debtsOverview.members_balances.length} thành viên)
+            </span>
+          </span>
+          {showBalanceTable ? (
+            <ChevronUp className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          )}
+        </button>
 
-        <div className="divide-y divide-slate-100 text-xs">
-          {debtsOverview.members_balances.map((mb) => (
-            <div
-              key={mb.user_id}
-              className="py-2 flex justify-between items-center"
-            >
-              <div>
-                <div className="font-semibold text-slate-800">
-                  {mb.full_name || mb.email}
-                  {mb.user_id === currentUserId && (
-                    <span className="text-[10px] ml-1.5 px-1 bg-slate-100 text-slate-500 rounded">
-                      Bạn
-                    </span>
-                  )}
+        {showBalanceTable && (
+          <div className="px-4 pb-4 pt-1 border-t border-slate-100 divide-y divide-slate-100 text-xs animate-in fade-in duration-150">
+            {debtsOverview.members_balances.map((mb) => (
+              <div
+                key={mb.user_id}
+                className="py-2.5 flex justify-between items-center"
+              >
+                <div>
+                  <div className="font-semibold text-slate-800">
+                    {mb.full_name || mb.email}
+                    {mb.user_id === currentUserId && (
+                      <span className="text-[10px] ml-1.5 px-1.5 py-0.2 bg-indigo-50 text-indigo-600 font-bold rounded-full border border-indigo-100">
+                        Bạn
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Đã ứng: {formatVND(mb.total_paid)} • Phần phải chịu:{" "}
+                    {formatVND(mb.total_share)}
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400">
-                  Đã trả: {mb.total_paid.toLocaleString("vi-VN")} đ | Chịu:{" "}
-                  {mb.total_share.toLocaleString("vi-VN")} đ
+
+                <div className="text-right">
+                  <span
+                    className={`font-black ${
+                      mb.net_balance > 0
+                        ? "text-emerald-700"
+                        : mb.net_balance < 0
+                        ? "text-rose-600"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {mb.net_balance > 0
+                      ? `+${formatVND(mb.net_balance)}`
+                      : mb.net_balance < 0
+                      ? `-${formatVND(mb.net_balance)}`
+                      : "0 đ"}
+                  </span>
+                  <div className="text-[10px] text-slate-400">
+                    {mb.net_balance > 0
+                      ? "Được nhận"
+                      : mb.net_balance < 0
+                      ? "Cần trả"
+                      : "Sòng phẳng"}
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              <span
-                className={`font-bold ${
-                  mb.net_balance > 0
-                    ? "text-emerald-700"
-                    : mb.net_balance < 0
-                      ? "text-rose-600"
-                      : "text-slate-500"
-                }`}
-              >
-                {mb.net_balance > 0
-                  ? `+${mb.net_balance.toLocaleString("vi-VN")} đ`
-                  : `${mb.net_balance.toLocaleString("vi-VN")} đ`}
-              </span>
-            </div>
-          ))}
-        </div>
+      {/* 4. LỊCH SỬ CHUYỂN TRẢ NỢ (Accordion Thu Gọn Mặc Định) */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-slate-500" />
+            <span>Lịch sử các lần chuyển trả nợ</span>
+            <span className="text-[11px] font-normal text-slate-400">
+              ({settlements.length} giao dịch)
+            </span>
+          </span>
+          {showHistory ? (
+            <ChevronUp className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          )}
+        </button>
+
+        {showHistory && (
+          <div className="px-4 pb-4 pt-1 border-t border-slate-100 text-xs animate-in fade-in duration-150">
+            {settlements.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Chưa có giao dịch chuyển trả nợ nào.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {settlements.map((s) => {
+                  const isReceiver = s.to_user_id === currentUserId;
+                  const isSender = s.from_user_id === currentUserId;
+                  const isPending = s.status === "PENDING";
+
+                  return (
+                    <div
+                      key={s.id}
+                      className="py-3 flex justify-between items-center gap-2 text-xs"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                          <span>{s.from_user_name}</span>
+                          <ArrowRight className="h-3 w-3 text-slate-400" />
+                          <span>{s.to_user_name}</span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              s.status === "CONFIRMED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : s.status === "PENDING"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {s.status === "CONFIRMED"
+                              ? "Đã xác nhận"
+                              : s.status === "PENDING"
+                              ? "Chờ xác nhận"
+                              : s.status === "REJECTED"
+                              ? "Đã từ chối"
+                              : "Đã hủy"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {formatAuditDateTime(s.created_at)}
+                          {s.note && ` • "${s.note}"`}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-slate-900">
+                          {formatVND(s.amount)}
+                        </span>
+
+                        {isPending && isReceiver && (
+                          <div className="flex gap-1 pl-1">
+                            <button
+                              onClick={() => onConfirmSettlement(s)}
+                              className="p-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg cursor-pointer"
+                              title="Xác nhận đã nhận tiền"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => onRejectSettlement(s)}
+                              className="p-1.5 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg cursor-pointer"
+                              title="Từ chối"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {isPending && isSender && (
+                          <button
+                            onClick={() => onCancelSettlement(s)}
+                            className="text-[11px] text-slate-400 hover:text-rose-600 pl-1 cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

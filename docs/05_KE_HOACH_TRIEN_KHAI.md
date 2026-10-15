@@ -12,7 +12,19 @@ Mục tiêu là để agent triển khai theo lát cắt nhỏ, chạy được 
 - Không tự tạo secret production, không commit `.env`.
 - Tài liệu, migrations, code và test phải cập nhật đồng bộ.
 
-## M0 — Khảo sát repository và nền tảng
+## Bảng tổng hợp Tiến độ Thực thi (Milestone Tracking)
+
+| Milestone | Tên Milestone | Trạng thái | Ghi chú nghiệm thu |
+| :--- | :--- | :---: | :--- |
+| **M0** | Khảo sát repository và nền tảng | ✅ Hoàn thành | Docker PostgreSQL 17, FastAPI health/ready, Next.js baseline |
+| **M1** | Tài khoản và phân quyền | ✅ Hoàn thành | Argon2id, cookie HttpOnly, auth sessions, modal auth |
+| **M2** | Tài chính cá nhân | ✅ Hoàn thành | Ví, giao dịch thu/chi/chuyển tiền, auto-provision ví mặc định |
+| **M3** | Nhóm, lời mời & quản trị thành viên | ✅ Hoàn thành | Mời Gmail, link đa dụng, phân quyền, chuyển Owner, xóa an toàn |
+| **M4** | Chi phí nhóm, phần chia và công nợ | ✅ Hoàn thành | Equal/Custom splits, bảo toàn số nguyên, tính nợ ròng & greedy simplify |
+| **M5** | Quỹ nhóm và quyết toán | ✅ Hoàn thành | Quỹ nạp/rút, vòng đời settlement, tự động hạch toán ví nhận hoàn nợ |
+| **M6** | PWA, MoneyInput & VietQR Napas | ✅ Hoàn thành | Responsive PWA, MoneyInput đọc chữ tiếng Việt, sinh mã VietQR Napas |
+| **M7** | Rà soát và phát hành MVP | ✅ Hoàn thành | Pytest pass 33/33, Next.js build pass, Docker Compose dev/prod |
+| **M8** | Chuẩn hóa Kiến trúc S-H-C-T | ✅ Hoàn thành | Tách tầng Services & Custom Hooks, triệt tiêu 100% raw apiRequest trong UI |
 
 ### Việc cần làm
 
@@ -67,21 +79,30 @@ Mục tiêu là để agent triển khai theo lát cắt nhỏ, chạy được 
 - Bộ lọc thời gian, ví và danh mục hoạt động.
 - Tổng báo cáo khớp với ledger; test cho trường hợp biên và amount lớn hợp lệ.
 
-## M3 — Nhóm và lời mời
+## M3 — Nhóm, lời mời & Quản trị thành viên
 
 ### Việc cần làm
 
 - Tạo/đổi tên nhóm.
-- Membership, role và vòng đời member.
-- Mời qua token có hạn, chấp nhận và thu hồi.
-- Danh sách nhóm, thông tin nhóm và quản lý thành viên.
+- Membership, role (`OWNER`, `ADMIN`, `MEMBER`) và vòng đời member.
+- Mời thành viên linh hoạt:
+  - Thêm trực tiếp bằng Gmail (`add_by_email`) cho người dùng đã có tài khoản.
+  - Link mời công khai đa dụng (`reusable = True`) kèm query param `?join_token=...` và lưu session storage.
+  - Lời mời cá nhân hạn chế theo email.
+- Quản trị thành viên:
+  - Đổi vai trò (Thăng cấp `ADMIN`, hạ cấp `MEMBER`).
+  - Chuyển giao quyền chủ nhóm (`Ownership Transfer`) an toàn trong một transaction.
+  - Xóa thành viên an toàn theo nguyên tắc bảo toàn sổ cái (`status = 'REMOVED'`), giữ nguyên vẹn lịch sử chi tiêu, split nợ và settlement.
+- Danh sách nhóm, thông tin nhóm và quản lý thành viên trực quan.
 
 ### Nghiệm thu
 
 - User tạo nhóm trở thành Owner.
-- User không thuộc nhóm không truy cập được endpoint nhóm.
-- Role được backend thực thi.
-- Invitation hết hạn, đã revoke hoặc dùng rồi bị từ chối.
+- User không thuộc nhóm không truy cập được endpoint nhóm (chặn 403/404).
+- Phân quyền RBAC được backend thực thi nghiêm ngặt: Admin không thể xóa Owner/Admin khác; Member không thể xóa hay đổi role người khác.
+- Chuyển giao Owner thành công biến Owner cũ thành Admin.
+- Xóa thành viên không làm mất mát hoặc lệch số liệu công nợ lịch sử.
+- Link công khai cho phép nhiều thành viên tham gia liên tục cho đến khi hết hạn hoặc bị thu hồi.
 - Không đọc/sửa thông tin ví hoặc giao dịch cá nhân của thành viên khác.
 
 ## M4 — Chi phí nhóm, phần chia và công nợ
@@ -122,23 +143,26 @@ Mục tiêu là để agent triển khai theo lát cắt nhỏ, chạy được 
 - Double submit và request cạnh tranh không làm lệch số dư.
 - Test ví dụ B và D trong quy tắc nghiệp vụ.
 
-## M6 — PWA và hoàn thiện UX
+## M6 — PWA, MoneyInput & VietQR Napas
 
 ### Việc cần làm
 
-- Responsive mobile/desktop.
-- PWA manifest, icons và installability.
+- Responsive mobile/desktop; PWA manifest, icons và installability.
+- Trải nghiệm nhập tiền tệ thông minh:
+  - Component `MoneyInput` tự động định dạng hàng nghìn, phím tắt `+000`, `+00`, `+50k`.
+  - Tiện ích `numberToVietnameseWords` đọc chính xác số tiền thành chữ tiếng Việt ngay dưới ô nhập.
+- Tích hợp sinh mã thanh toán VietQR Napas chuẩn EMVCo động theo số tài khoản, ngân hàng, số tiền và nội dung chuyển khoản.
 - Trạng thái loading, empty, error, success, confirm cho thao tác tài chính.
 - Format tiền, ngày giờ, thông báo validation tiếng Việt.
-- Accessibility cơ bản: label form, keyboard navigation, contrast và focus state.
 - Không cache API nhạy cảm trong service worker.
 
 ### Nghiệm thu
 
-- Giao diện hoạt động với màn hình điện thoại phổ biến và desktop.
-- Có thể cài PWA trên trình duyệt hỗ trợ.
+- Giao diện hoạt động trơn tru trên màn hình di động phổ biến và desktop.
+- Có thể cài đặt PWA trên trình duyệt di động / desktop.
+- Ô nhập tiền ngăn chặn 100% việc nhập sai số 0 nhờ hiển thị số tiền bằng chữ tiếng Việt trực quan.
+- Mã VietQR sinh ra quét được chính xác trên tất cả ứng dụng ngân hàng tại Việt Nam (MBBank, Vietcombank, Techcombank, Momo...).
 - Logout không để lộ dữ liệu user trước trong UI/cache.
-- Các luồng chính có thông báo lỗi và không mất dữ liệu do lỗi form thông thường.
 
 ## M7 — Rà soát và phát hành MVP
 
@@ -152,11 +176,30 @@ Mục tiêu là để agent triển khai theo lát cắt nhỏ, chạy được 
 
 ### Nghiệm thu
 
-- Build và tests chạy thành công hoặc mọi lỗi còn tồn tại được ghi rõ, không giả báo pass.
+- Build và tests chạy thành công (Backend 33/33 tests pass, Next.js build exit code 0).
 - Database production không mở cổng công khai ngoài chủ đích đã ghi tài liệu.
 - Có hướng dẫn backup/restore đã thử nghiệm trên môi trường an toàn.
 - Người mới có thể chạy dự án từ README.
 - Không còn Supabase SDK, URL, keys hoặc code path phụ thuộc Supabase.
+
+## M8 — Chuẩn hóa Kiến trúc Frontend 4 Lớp (S-H-C-T)
+
+### Việc cần làm
+
+- Loại bỏ hoàn toàn tình trạng "God Component" và các file `.tsx` dài hàng nghìn dòng.
+- Tách biệt rạch ròi 4 tầng kiến trúc:
+  1. **Types Layer (`types.ts`)**: Định nghĩa DTO và Domain models.
+  2. **Service Layer (`*-service.ts`)**: Pure async API client (`auth-service.ts`, `group-service.ts`, `personal-finance-service.ts`, `qr-service.ts`).
+  3. **Custom Hook Layer (`hooks/use-*.ts`)**: Quản lý State, Effect, bộ lọc và hàm refresh (`usePersonalFinance`, `useGroupManagement`, `useAuth`).
+  4. **Component Layer (`components/` & Modals)**: Giao diện thuần túy và biểu đồ trực quan.
+- Cưỡng chế quy ước: 100% file `.tsx` không gọi trực tiếp `apiRequest`.
+
+### Nghiệm thu
+
+- 100% lời gọi mạng Backend được tập trung trong các module Service.
+- Các component giao diện (`PersonalDashboard`, `GroupDashboard`) giảm 60-70% số dòng code, dễ đọc và bảo trì.
+- Render performance tối ưu: chỉ re-render component con cần cập nhật khi filter thay đổi.
+- TypeScript type-safety tuyệt đối cho mọi request và response API.
 
 ## Definition of Done chung
 

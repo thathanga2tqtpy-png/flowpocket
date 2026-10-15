@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { groupService } from "./group-service";
+import { personalFinanceService } from "@/features/personal-finance/personal-finance-service";
 import { GroupFund } from "./types";
 import { Wallet as WalletType } from "@/features/personal-finance/types";
 import { Wallet, X, ArrowDownRight, ArrowUpRight, AlertCircle, Loader2 } from "lucide-react";
@@ -36,7 +37,7 @@ export function FundModal({
 
   useEffect(() => {
     if (isOpen) {
-      apiRequest<WalletType[]>("/api/v1/wallets").then((res) => {
+      personalFinanceService.getWallets().then((res) => {
         if (res.data && res.data.length > 0) {
           setUserWallets(res.data);
           setSelectedWalletId(res.data[0].id);
@@ -71,28 +72,18 @@ export function FundModal({
     setLoading(true);
     setError(null);
 
-    const endpoint =
+    const res =
       activeTab === "CONTRIBUTE"
-        ? `/api/v1/groups/${groupId}/fund/contributions`
-        : `/api/v1/groups/${groupId}/fund/withdrawals`;
-
-    const payload =
-      activeTab === "CONTRIBUTE"
-        ? {
+        ? await groupService.depositFund(groupId, {
             amount,
             description: description.trim() || undefined,
             payer_wallet_id: selectedWalletId || undefined,
-          }
-        : {
+          })
+        : await groupService.withdrawFund(groupId, {
             amount,
             reason: description.trim(),
             recipient_wallet_id: selectedWalletId || undefined,
-          };
-
-    const res = await apiRequest(endpoint, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+          });
 
     setLoading(false);
     if (res.error) {

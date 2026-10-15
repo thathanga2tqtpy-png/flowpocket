@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Wallet,
   Users,
@@ -28,6 +28,25 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [financeTab, setFinanceTab] = useState<"personal" | "groups">("personal");
   const [showProfile, setShowProfile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("join_token");
+      if (token) {
+        localStorage.setItem("pending_join_token", token);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && typeof window !== "undefined") {
+      const pending = localStorage.getItem("pending_join_token");
+      if (pending) {
+        setFinanceTab("groups");
+      }
+    }
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">

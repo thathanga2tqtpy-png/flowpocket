@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { groupService } from "./group-service";
+import { personalFinanceService } from "@/features/personal-finance/personal-finance-service";
 import { GroupMemberItem, GroupFund, CreateGroupExpensePayload } from "./types";
 import { Wallet as WalletType, Category as CategoryType } from "@/features/personal-finance/types";
 import { Receipt, X, Users, Wallet, AlertCircle, Tag, PiggyBank } from "lucide-react";
@@ -52,13 +53,13 @@ export function ExpenseModal({
 
   useEffect(() => {
     if (isOpen) {
-      apiRequest<WalletType[]>("/api/v1/wallets").then((res) => {
+      personalFinanceService.getWallets().then((res) => {
         if (res.data && res.data.length > 0) {
           setUserWallets(res.data);
           setSelectedWalletId(res.data[0].id);
         }
       });
-      apiRequest<CategoryType[]>("/api/v1/categories").then((res) => {
+      personalFinanceService.getCategories().then((res) => {
         if (res.data && res.data.length > 0) {
           const expenseCats = res.data.filter((c) => c.kind === "EXPENSE");
           setCategories(expenseCats);
@@ -166,10 +167,7 @@ export function ExpenseModal({
       splits: splitsPayload,
     };
 
-    const res = await apiRequest(`/api/v1/groups/${groupId}/expenses`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const res = await groupService.createExpense(groupId, payload);
 
     setLoading(false);
     if (res.error) {

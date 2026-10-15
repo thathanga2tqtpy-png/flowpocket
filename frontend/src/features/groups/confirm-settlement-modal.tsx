@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { groupService } from "./group-service";
+import { personalFinanceService } from "@/features/personal-finance/personal-finance-service";
 import { GroupSettlement } from "./types";
 import { Wallet as WalletType } from "@/features/personal-finance/types";
 import { Check, X, AlertCircle, Loader2 } from "lucide-react";
@@ -28,7 +29,7 @@ export function ConfirmSettlementModal({
 
   useEffect(() => {
     if (isOpen) {
-      apiRequest<WalletType[]>("/api/v1/wallets").then((res) => {
+      personalFinanceService.getWallets().then((res) => {
         if (res.data && res.data.length > 0) {
           setUserWallets(res.data);
           setSelectedWalletId(res.data[0].id);
@@ -55,13 +56,7 @@ export function ConfirmSettlementModal({
       recipient_wallet_id: selectedWalletId || undefined,
     };
 
-    const res = await apiRequest(
-      `/api/v1/groups/${groupId}/settlements/${settlement.id}/confirm`,
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }
-    );
+    const res = await groupService.confirmSettlement(groupId, settlement.id, payload);
 
     setLoading(false);
     if (res.error) {

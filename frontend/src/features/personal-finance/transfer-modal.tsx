@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { personalFinanceService } from "./personal-finance-service";
 import { Wallet } from "./types";
 import { ArrowLeftRight, X, Loader2, AlertCircle } from "lucide-react";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -48,14 +48,12 @@ export function TransferModal({
     }
 
     setLoading(true);
-    const res = await apiRequest("/api/v1/transactions/transfer", {
-      method: "POST",
-      body: JSON.stringify({
-        source_wallet_id: sourceWalletId,
-        destination_wallet_id: destWalletId,
-        amount: amount,
-        description: description.trim() || null,
-      }),
+    const res = await personalFinanceService.transfer({
+      source_wallet_id: sourceWalletId,
+      destination_wallet_id: destWalletId,
+      amount: amount,
+      description: description.trim() || undefined,
+      transaction_date: new Date().toISOString(),
     });
 
     if (res.data) {

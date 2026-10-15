@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { personalFinanceService } from "./personal-finance-service";
 import { Wallet, Category } from "./types";
 import {
   X,
@@ -74,16 +74,13 @@ export function TransactionModal({
     setLoading(true);
     const txDateIso = transactionDate ? new Date(transactionDate).toISOString() : new Date().toISOString();
 
-    const res = await apiRequest("/api/v1/transactions", {
-      method: "POST",
-      body: JSON.stringify({
-        wallet_id: walletId,
-        transaction_type: txType,
-        amount: amount,
-        category_id: categoryId || null,
-        description: description.trim() || null,
-        transaction_date: txDateIso,
-      }),
+    const res = await personalFinanceService.createTransaction({
+      wallet_id: walletId,
+      transaction_type: txType,
+      amount: amount,
+      category_id: categoryId || null,
+      description: description.trim() || null,
+      transaction_date: txDateIso,
     });
 
     setLoading(false);

@@ -14,6 +14,7 @@ from app.schemas.group import (
     GroupResponse,
     GroupDetailResponse,
     GroupMemberResponse,
+    AddMemberByEmailRequest,
     InvitationCreate,
     InvitationResponse,
 )
@@ -244,6 +245,7 @@ def create_invitation(
         group_id=group.id,
         created_by_user_id=user_id,
         invited_email=invited_email_norm,
+        is_reusable=data.reusable,
         token_hash=token_digest,
         expires_at=expires,
         created_at=now,
@@ -257,6 +259,7 @@ def create_invitation(
         group_id=group.id,
         group_name=group.name,
         invited_email=invitation.invited_email,
+        is_reusable=invitation.is_reusable,
         raw_token=raw_token,
         expires_at=invitation.expires_at,
         created_at=invitation.created_at,
@@ -285,7 +288,7 @@ def accept_invitation(db: Session, user: User, raw_token: str) -> FinanceGroup:
             detail="Lời mời này đã bị người quản lý thu hồi",
         )
 
-    if invitation.accepted_at is not None:
+    if invitation.accepted_at is not None and not invitation.is_reusable:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Lời mời này đã được sử dụng trước đó (mỗi lời mời chỉ dùng 1 lần)",
@@ -346,12 +349,109 @@ def accept_invitation(db: Session, user: User, raw_token: str) -> FinanceGroup:
         )
         db.add(new_member)
 
-    # Mark invitation as accepted (single-use invariant)
-    invitation.accepted_at = now
-    invitation.accepted_by_user_id = user.id
+    # Mark invitation as accepted if not yet recorded
+    if invitation.accepted_at is None:
+        invitation.accepted_at = now
+        invitation.accepted_by_user_id = user.id
 
     db.commit()
     return group
+
+
+def add_member_by_email(
+    db: Session,
+    group_id: uuid.UUID,
+    current_user_id: uuid.UUID,
+    data: AddMemberByEmailRequest,
+) -> GroupMemberResponse:
+    # 1. Require caller to be OWNER or ADMIN
+    require_group_membership(db, group_id, current_user_id, required_roles=["OWNER", "ADMIN"])
+
+    group = db.execute(
+        select(FinanceGroup).where(
+            FinanceGroup.id == group_id,
+            FinanceGroup.status == "ACTIVE",
+        )
+    ).scalar_one_or_none()
+
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nhóm tài chính không tồn tại hoặc đã bị giải tán",
+        )
+
+    # 2. Look up target user by email
+    target_email = data.email.strip().lower()
+    target_user = db.execute(
+        select(User).where(func.lower(User.email) == target_email)
+    ).scalar_one_or_none()
+
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy tài khoản FlowPocket nào với email '{data.email}'. Vui lòng gửi link mời để bạn của bạn tạo tài khoản rồi tham gia.",
+        )
+
+    # 3. Check role
+    role_upper = data.role.upper() if data.role else "MEMBER"
+    if role_upper not in ("MEMBER", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vai trò chỉ có thể là MEMBER hoặc ADMIN",
+        )
+
+    # 4. Check existing membership
+    existing_member = db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == target_user.id,
+        )
+    ).scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    if existing_member:
+        if existing_member.status == "ACTIVE":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Người dùng {target_user.display_name} ({target_user.email}) hiện đã là thành viên trong nhóm rồi.",
+            )
+        # Reactivate
+        existing_member.status = "ACTIVE"
+        existing_member.role = role_upper
+        existing_member.joined_at = now
+        existing_member.left_at = None
+        db.commit()
+        db.refresh(existing_member)
+        return GroupMemberResponse(
+            id=existing_member.id,
+            user_id=target_user.id,
+            display_name=target_user.display_name,
+            email=target_user.email,
+            role=existing_member.role,
+            status=existing_member.status,
+            joined_at=existing_member.joined_at,
+        )
+
+    new_member = GroupMember(
+        group_id=group_id,
+        user_id=target_user.id,
+        role=role_upper,
+        status="ACTIVE",
+        joined_at=now,
+    )
+    db.add(new_member)
+    db.commit()
+    db.refresh(new_member)
+
+    return GroupMemberResponse(
+        id=new_member.id,
+        user_id=target_user.id,
+        display_name=target_user.display_name,
+        email=target_user.email,
+        role=new_member.role,
+        status=new_member.status,
+        joined_at=new_member.joined_at,
+    )
 
 
 def update_member_role(
