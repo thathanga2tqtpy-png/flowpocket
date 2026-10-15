@@ -113,9 +113,15 @@ export function QRExpenseForm({
       setSuccess(true);
       onSuccess();
 
-      if (bankConfig && bankConfig.scheme) {
+      if (bankConfig) {
         setTimeout(() => {
-          openBankAppByScheme(bankConfig.scheme);
+          openBankAppByScheme(bankConfig, {
+            bankCode: parsedResult.bankCode,
+            bankBin: parsedResult.bankBin,
+            accountNumber: parsedResult.accountNumber,
+            amount: expenseAmount,
+            memo: expenseDescription.trim() || parsedResult.memo,
+          });
         }, 300);
       }
 
