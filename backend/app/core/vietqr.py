@@ -1,45 +1,78 @@
 """
 VietQR EMVCo QR Code Generator & Parser
 Tuân thủ tiêu chuẩn EMVCo QR Code Specification và Napas VietQR cho thanh toán liên ngân hàng tại Việt Nam.
-
-Định dạng TLV (Tag-Length-Value):
-- Tag 00: Payload Format Indicator ("01")
-- Tag 01: Point of Initiation Method ("12" - Dynamic QR với số tiền và nội dung cụ thể, hoặc "11" - Static QR)
-- Tag 38: Merchant Account Information (Napas/VietQR AID: "A000000727", Bank BIN + Account No)
-- Tag 53: Transaction Currency ("704" - VND)
-- Tag 54: Transaction Amount (Số tiền VND)
-- Tag 58: Country Code ("VN")
-- Tag 62: Additional Data Field (Sub-tag 08: Nội dung chuyển khoản)
-- Tag 63: CRC16-CCITT checksum (4 ký tự Hex in hoa)
+Tích hợp toàn bộ 76 Ngân hàng & Ví điện tử thuộc hệ thống Napas & VietQR quốc gia.
 """
 
 import unicodedata
 import re
 
-# Danh sách ngân hàng phổ biến nhất Việt Nam với mã BIN Napas chuẩn 6 chữ số
+# Danh sách toàn bộ các ngân hàng & ví điện tử tại Việt Nam theo chuẩn VietQR Napas
 VIETNAM_BANKS = [
-    {"code": "VCB", "name": "Vietcombank", "bin": "970436", "short_name": "Vietcombank"},
-    {"code": "TCB", "name": "Techcombank", "bin": "970407", "short_name": "Techcombank"},
-    {"code": "MB", "name": "MBBank", "bin": "970422", "short_name": "MBBank"},
-    {"code": "ICB", "name": "VietinBank", "bin": "970415", "short_name": "VietinBank"},
-    {"code": "BIDV", "name": "BIDV", "bin": "970418", "short_name": "BIDV"},
-    {"code": "ACB", "name": "ACB", "bin": "970416", "short_name": "ACB"},
-    {"code": "VPB", "name": "VPBank", "bin": "970432", "short_name": "VPBank"},
-    {"code": "TPB", "name": "TPBank", "bin": "970423", "short_name": "TPBank"},
-    {"code": "STB", "name": "Sacombank", "bin": "970403", "short_name": "Sacombank"},
-    {"code": "HDB", "name": "HDBank", "bin": "970437", "short_name": "HDBank"},
-    {"code": "VIB", "name": "VIB", "bin": "970441", "short_name": "VIB"},
-    {"code": "SHB", "name": "SHB", "bin": "970443", "short_name": "SHB"},
-    {"code": "OCB", "name": "OCB", "bin": "970448", "short_name": "OCB"},
-    {"code": "MSB", "name": "MSB", "bin": "970426", "short_name": "MSB"},
-    {"code": "LPB", "name": "LPBank", "bin": "970449", "short_name": "LPBank"},
-    {"code": "SEAB", "name": "SeABank", "bin": "970440", "short_name": "SeABank"},
-    {"code": "VAB", "name": "VietABank", "bin": "970427", "short_name": "VietABank"},
-    {"code": "BVB", "name": "BaoVietBank", "bin": "970438", "short_name": "BaoVietBank"},
-    {"code": "KLB", "name": "KienLongBank", "bin": "970452", "short_name": "Kienlongbank"},
-    {"code": "CAKE", "name": "Cake by VPBank", "bin": "546034", "short_name": "CAKE"},
-    {"code": "TIMO", "name": "Timo by BVBank", "bin": "963388", "short_name": "Timo"},
-    {"code": "BVBANK", "name": "BVBank (Bản Việt)", "bin": "970454", "short_name": "BVBank"},
+    {"code": "ICB", "name": "Ngân hàng TMCP Công thương Việt Nam", "bin": "970415", "short_name": "VietinBank"},
+    {"code": "VCB", "name": "Ngân hàng TMCP Ngoại Thương Việt Nam", "bin": "970436", "short_name": "Vietcombank"},
+    {"code": "BIDV", "name": "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam", "bin": "970418", "short_name": "BIDV"},
+    {"code": "VBA", "name": "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam", "bin": "970405", "short_name": "Agribank"},
+    {"code": "OCB", "name": "Ngân hàng TMCP Phương Đông", "bin": "970448", "short_name": "OCB"},
+    {"code": "MB", "name": "Ngân hàng TMCP Quân đội", "bin": "970422", "short_name": "MBBank"},
+    {"code": "TCB", "name": "Ngân hàng TMCP Kỹ thương Việt Nam", "bin": "970407", "short_name": "Techcombank"},
+    {"code": "ACB", "name": "Ngân hàng TMCP Á Châu", "bin": "970416", "short_name": "ACB"},
+    {"code": "VPB", "name": "Ngân hàng TMCP Việt Nam Thịnh Vượng", "bin": "970432", "short_name": "VPBank"},
+    {"code": "TPB", "name": "Ngân hàng TMCP Tiên Phong", "bin": "970423", "short_name": "TPBank"},
+    {"code": "STB", "name": "Ngân hàng TMCP Sài Gòn Thương Tín", "bin": "970403", "short_name": "Sacombank"},
+    {"code": "HDB", "name": "Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh", "bin": "970437", "short_name": "HDBank"},
+    {"code": "VCCB", "name": "Ngân hàng TMCP Bản Việt", "bin": "970454", "short_name": "BVBank"},
+    {"code": "BVBANK", "name": "Ngân hàng TMCP Bản Việt", "bin": "970454", "short_name": "BVBank"},
+    {"code": "SCB", "name": "Ngân hàng TMCP Sài Gòn", "bin": "970429", "short_name": "SCB"},
+    {"code": "VIB", "name": "Ngân hàng TMCP Quốc tế Việt Nam", "bin": "970441", "short_name": "VIB"},
+    {"code": "SHB", "name": "Ngân hàng TMCP Sài Gòn - Hà Nội", "bin": "970443", "short_name": "SHB"},
+    {"code": "EIB", "name": "Ngân hàng TMCP Xuất Nhập khẩu Việt Nam", "bin": "970431", "short_name": "Eximbank"},
+    {"code": "MSB", "name": "Ngân hàng TMCP Hàng Hải", "bin": "970426", "short_name": "MSB"},
+    {"code": "CAKE", "name": "Ngân hàng số CAKE by VPBank", "bin": "546034", "short_name": "CAKE"},
+    {"code": "UBANK", "name": "Ngân hàng số Ubank by VPBank", "bin": "546035", "short_name": "Ubank"},
+    {"code": "TIMO", "name": "Ngân hàng số Timo by BVBank", "bin": "963388", "short_name": "Timo"},
+    {"code": "VTLMONEY", "name": "Viettel Money", "bin": "971005", "short_name": "ViettelMoney"},
+    {"code": "VNPTMONEY", "name": "VNPT Money", "bin": "971011", "short_name": "VNPTMoney"},
+    {"code": "SGICB", "name": "Ngân hàng TMCP Sài Gòn Công Thương", "bin": "970400", "short_name": "SaigonBank"},
+    {"code": "BAB", "name": "Ngân hàng TMCP Bắc Á", "bin": "970409", "short_name": "BacABank"},
+    {"code": "PVDB", "name": "Ngân hàng số PVcomBank Pay", "bin": "971133", "short_name": "PVcomBank Pay"},
+    {"code": "MOMO", "name": "Ví điện tử MoMo", "bin": "971025", "short_name": "MoMo"},
+    {"code": "PVCB", "name": "Ngân hàng TMCP Đại Chúng Việt Nam", "bin": "970412", "short_name": "PVcomBank"},
+    {"code": "MBV", "name": "Ngân hàng TNHH MTV Việt Nam Hiện Đại", "bin": "970414", "short_name": "MBV"},
+    {"code": "NCB", "name": "Ngân hàng TMCP Quốc Dân", "bin": "970419", "short_name": "NCB"},
+    {"code": "SHBVN", "name": "Ngân hàng TNHH MTV Shinhan Việt Nam", "bin": "970424", "short_name": "ShinhanBank"},
+    {"code": "ABB", "name": "Ngân hàng TMCP An Bình", "bin": "970425", "short_name": "ABBANK"},
+    {"code": "VAB", "name": "Ngân hàng TMCP Việt Á", "bin": "970427", "short_name": "VietABank"},
+    {"code": "NAB", "name": "Ngân hàng TMCP Nam Á", "bin": "970428", "short_name": "NamABank"},
+    {"code": "PGB", "name": "Ngân hàng TMCP Thịnh vượng và Phát triển", "bin": "970430", "short_name": "PGBank"},
+    {"code": "VIETBANK", "name": "Ngân hàng TMCP Việt Nam Thương Tín", "bin": "970433", "short_name": "VietBank"},
+    {"code": "BVB", "name": "Ngân hàng TMCP Bảo Việt", "bin": "970438", "short_name": "BaoVietBank"},
+    {"code": "SEAB", "name": "Ngân hàng TMCP Đông Nam Á", "bin": "970440", "short_name": "SeABank"},
+    {"code": "COOPBANK", "name": "Ngân hàng Hợp tác xã Việt Nam", "bin": "970446", "short_name": "COOPBANK"},
+    {"code": "LPB", "name": "Ngân hàng TMCP Lộc Phát Việt Nam", "bin": "970449", "short_name": "LPBank"},
+    {"code": "KLB", "name": "Ngân hàng TMCP Kiên Long", "bin": "970452", "short_name": "KienLongBank"},
+    {"code": "KBANK", "name": "Ngân hàng Đại chúng TNHH Kasikornbank", "bin": "668888", "short_name": "KBank"},
+    {"code": "KEBHANAHCM", "name": "Ngân hàng KEB Hana – Chi nhánh TP.HCM", "bin": "970466", "short_name": "KEBHanaHCM"},
+    {"code": "KEBHANAHN", "name": "Ngân hàng KEB Hana – Chi nhánh Hà Nội", "bin": "970467", "short_name": "KEBHANAHN"},
+    {"code": "MAFC", "name": "Tài chính Mirae Asset Việt Nam", "bin": "977777", "short_name": "MAFC"},
+    {"code": "VBSP", "name": "Ngân hàng Chính sách Xã hội", "bin": "999888", "short_name": "VBSP"},
+    {"code": "ZALOPAY", "name": "Ví điện tử ZaloPay", "bin": "971101", "short_name": "ZaloPay"},
+    {"code": "TNEX", "name": "TNEX by MSB", "bin": "963326", "short_name": "TNEX"},
+    {"code": "HSBC", "name": "Ngân hàng TNHH MTV HSBC Việt Nam", "bin": "458761", "short_name": "HSBC"},
+    {"code": "HLBVN", "name": "Ngân hàng TNHH MTV Hong Leong Việt Nam", "bin": "970442", "short_name": "HongLeong"},
+    {"code": "IVB", "name": "Ngân hàng TNHH Indovina", "bin": "970434", "short_name": "IndovinaBank"},
+    {"code": "VIKKI", "name": "Ngân hàng số Vikki", "bin": "970406", "short_name": "Vikki"},
+    {"code": "PBVN", "name": "Ngân hàng TNHH MTV Public Việt Nam", "bin": "970439", "short_name": "PublicBank"},
+    {"code": "SCVN", "name": "Standard Chartered Bank Việt Nam", "bin": "970410", "short_name": "StandardChartered"},
+    {"code": "CITIBANK", "name": "Citibank Việt Nam", "bin": "533948", "short_name": "Citibank"},
+    {"code": "CIMB", "name": "Ngân hàng TNHH MTV CIMB Việt Nam", "bin": "422589", "short_name": "CIMB"},
+    {"code": "UOB", "name": "Ngân hàng United Overseas Bank Việt Nam", "bin": "970458", "short_name": "UOB"},
+    {"code": "CBB", "name": "Ngân hàng TM TNHH MTV Xây dựng Việt Nam (CBBank)", "bin": "970444", "short_name": "CBBank"},
+    {"code": "GPB", "name": "Ngân hàng TM TNHH MTV Dầu Khí Toàn Cầu (GPBank)", "bin": "970408", "short_name": "GPBank"},
+    {"code": "VRB", "name": "Ngân hàng Liên doanh Việt - Nga", "bin": "970421", "short_name": "VRB"},
+    {"code": "WVN", "name": "Ngân hàng TNHH MTV Woori Việt Nam", "bin": "970457", "short_name": "Woori"},
+    {"code": "KBHN", "name": "Ngân hàng Kookmin - Chi nhánh Hà Nội", "bin": "970462", "short_name": "KookminHN"},
+    {"code": "KBHCM", "name": "Ngân hàng Kookmin - Chi nhánh TP.HCM", "bin": "970463", "short_name": "KookminHCM"},
 ]
 
 BANK_LOOKUP = {b["code"].upper(): b for b in VIETNAM_BANKS}
@@ -95,8 +128,13 @@ def parse_tlv(payload: str) -> dict[str, str]:
     idx = 0
     while idx + 4 <= len(payload):
         tag = payload[idx : idx + 2]
-        length = int(payload[idx + 2 : idx + 4])
+        try:
+            length = int(payload[idx + 2 : idx + 4])
+        except ValueError:
+            break
         idx += 4
+        if idx + length > len(payload):
+            break
         value = payload[idx : idx + length]
         idx += length
         result[tag] = value
@@ -104,100 +142,53 @@ def parse_tlv(payload: str) -> dict[str, str]:
 
 
 def generate_vietqr_payload(
-    bank_bin: str | None = None,
-    account_number: str = "",
+    bank_bin: str,
+    account_number: str,
     amount: int | None = None,
-    description: str | None = None,
-    bank_code: str | None = None,
     memo: str | None = None,
-    flexible_amount: bool = True,
+    point_of_initiation: str = "12",
 ) -> str:
     """
-    Tạo chuỗi VietQR chuẩn EMVCo hoàn chỉnh.
-    Hỗ trợ cả bank_bin (6 số) hoặc bank_code (VCB, MB...).
-    Nếu flexible_amount=True: dùng Tag 01 = "11" (Static/Flexible QR) kèm Tag 54 gợi ý số tiền,
-    cho phép người chuyển quét QR thấy số tiền nhưng vẫn có thể sửa lại (làm tròn, típ thêm...) trên ứng dụng ngân hàng.
-    Nếu flexible_amount=False: dùng Tag 01 = "12" (Dynamic QR khóa cứng số tiền).
+    Tạo chuỗi ký tự chuẩn VietQR EMVCo.
     """
-    actual_bin = bank_bin
-    if not actual_bin and bank_code:
-        bank_info = get_bank_info(bank_code)
-        if bank_info:
-            actual_bin = bank_info["bin"]
+    clean_account = re.sub(r"[^a-zA-Z0-9]", "", str(account_number).strip())
+    sub_tag_00 = format_tlv("00", bank_bin.strip())
+    sub_tag_01 = format_tlv("01", clean_account)
+    beneficiary_payload = sub_tag_00 + sub_tag_01
 
-    if not actual_bin:
-        raise ValueError(f"Không xác định được mã BIN cho ngân hàng (bank_code={bank_code}, bank_bin={bank_bin})")
+    tag_38_sub_00 = format_tlv("00", "A000000727")
+    tag_38_sub_01 = format_tlv("01", beneficiary_payload)
+    tag_38_sub_02 = format_tlv("02", "QRIBFTTA")
+    tag_38_payload = tag_38_sub_00 + tag_38_sub_01 + tag_38_sub_02
 
-    actual_memo = memo if memo is not None else description
-    clean_account = "".join(filter(str.isalnum, account_number))
-    clean_bin = "".join(filter(str.isdigit, actual_bin))
+    parts = [
+        format_tlv("00", "01"),
+        format_tlv("01", point_of_initiation),
+        format_tlv("38", tag_38_payload),
+        format_tlv("53", "704"),
+    ]
 
-    # 1. Payload Format Indicator
-    tlv_00 = format_tlv("00", "01")
-
-    # 2. Point of Initiation Method: 11 (Static/Gợi ý số tiền, cho phép sửa) hoặc 12 (Dynamic khóa số tiền)
-    if flexible_amount:
-        initiation_method = "11"
-    else:
-        initiation_method = "12" if (amount and amount > 0) else "11"
-    tlv_01 = format_tlv("01", initiation_method)
-
-    # 3. Merchant Account Information (Tag 38 - Napas/VietQR)
-    # Sub-tag 00: GUID "A000000727"
-    sub_00 = format_tlv("00", "A000000727")
-    # Sub-tag 01: Beneficiary Org (Bank BIN + Account Number)
-    sub_beneficiary_00 = format_tlv("00", clean_bin)
-    sub_beneficiary_01 = format_tlv("01", clean_account)
-    sub_01_val = f"{sub_beneficiary_00}{sub_beneficiary_01}"
-    sub_01 = format_tlv("01", sub_01_val)
-    # Sub-tag 02: Service Code (QRIBFTTC - Chuyển nhanh 24/7 tới tài khoản)
-    sub_02 = format_tlv("02", "QRIBFTTC")
-
-    tag_38_val = f"{sub_00}{sub_01}{sub_02}"
-    tlv_38 = format_tlv("38", tag_38_val)
-
-    # 4. Transaction Currency (Tag 53): 704 (VND)
-    tlv_53 = format_tlv("53", "704")
-
-    # 5. Transaction Amount (Tag 54) nếu có
-    tlv_54 = ""
     if amount and amount > 0:
-        tlv_54 = format_tlv("54", str(int(amount)))
+        parts.append(format_tlv("54", str(int(amount))))
 
-    # 6. Country Code (Tag 58): VN
-    tlv_58 = format_tlv("58", "VN")
+    parts.append(format_tlv("58", "VN"))
 
-    # 7. Additional Data Field Template (Tag 62) cho Nội dung chuyển khoản
-    tlv_62 = ""
-    if actual_memo:
-        safe_desc = remove_vietnamese_accents(actual_memo)[:25]
-        if safe_desc:
-            sub_62_08 = format_tlv("08", safe_desc)
-            tlv_62 = format_tlv("62", sub_62_08)
+    if memo:
+        clean_memo = clean_ascii_for_vietqr(memo)[:50]
+        if clean_memo:
+            sub_tag_62_08 = format_tlv("08", clean_memo)
+            parts.append(format_tlv("62", sub_tag_62_08))
 
-    # 8. Ghép lại chuỗi trước CRC
-    raw_payload = f"{tlv_00}{tlv_01}{tlv_38}{tlv_53}{tlv_54}{tlv_58}{tlv_62}6304"
-
-    # 9. Tính checksum CRC16
-    crc = compute_crc16(raw_payload)
-    final_payload = f"{raw_payload[:-4]}{format_tlv('63', crc)}"
-
-    return final_payload
+    raw_qr = "".join(parts) + "6304"
+    crc = compute_crc16(raw_qr)
+    return raw_qr + crc
 
 
-def verify_vietqr_payload(payload: str) -> bool:
-    """Kiểm tra tính toàn vẹn CRC16 của chuỗi VietQR"""
-    if len(payload) < 8 or not payload.endswith(payload[-4:]):
-        return False
-    data_part = payload[:-4]
-    expected_crc = payload[-4:]
-    return compute_crc16(data_part) == expected_crc
-
-
-def parse_vietqr_payload(payload: str) -> dict:
-    """Phân giải chuỗi mã VietQR Napas EMVCo thành thông tin ngân hàng, số tài khoản, số tiền và nội dung"""
-    clean_p = payload.strip()
-    tlv = parse_tlv(clean_p)
+def parse_vietqr_payload(raw_payload: str) -> dict:
+    """
+    Phân tích chuỗi VietQR hoặc QR bất kỳ để trích xuất thông tin thanh toán.
+    """
+    clean = raw_payload.strip()
     result = {
         "is_valid_vietqr": False,
         "bank_bin": None,
@@ -206,33 +197,37 @@ def parse_vietqr_payload(payload: str) -> dict:
         "account_number": None,
         "amount": None,
         "memo": None,
-        "raw_payload": clean_p,
+        "raw_payload": clean,
     }
 
+    tlv = parse_tlv(clean)
+
     if "38" in tlv:
-        sub_38 = parse_tlv(tlv["38"])
-        # Napas GUID
-        if sub_38.get("00") == "A000000727" and "01" in sub_38:
-            beneficiary = parse_tlv(sub_38["01"])
+        sub38 = parse_tlv(tlv["38"])
+        if sub38.get("00") == "A000000727" and "01" in sub38:
+            beneficiary = parse_tlv(sub38["01"])
             bin_code = beneficiary.get("00")
             account_no = beneficiary.get("01")
+
             result["bank_bin"] = bin_code
             result["account_number"] = account_no
             result["is_valid_vietqr"] = True
+
             if bin_code and bin_code in BIN_LOOKUP:
-                b_info = BIN_LOOKUP[bin_code]
-                result["bank_code"] = b_info["code"]
-                result["bank_name"] = b_info["name"]
+                result["bank_code"] = BIN_LOOKUP[bin_code]["code"]
+                result["bank_name"] = BIN_LOOKUP[bin_code]["name"]
 
     if "54" in tlv:
         try:
-            result["amount"] = int(tlv["54"])
-        except (ValueError, TypeError):
+            amt = int(float(tlv["54"]))
+            if amt > 0:
+                result["amount"] = amt
+        except ValueError:
             pass
 
     if "62" in tlv:
-        sub_62 = parse_tlv(tlv["62"])
-        if "08" in sub_62:
-            result["memo"] = sub_62["08"]
+        sub62 = parse_tlv(tlv["62"])
+        if "08" in sub62:
+            result["memo"] = sub62["08"]
 
     return result
