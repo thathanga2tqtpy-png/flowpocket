@@ -13,7 +13,7 @@ def calculate_wallet_balance(db: Session, wallet: Wallet) -> int:
     Calculate current balance strictly from opening balance and ledger records:
     Balance = opening_balance + sum(INFLOW) - sum(OUTFLOW)
     """
-    inflow_types = ("INCOME", "TRANSFER_IN", "GROUP_SETTLEMENT_RECEIVED", "ADJUSTMENT_IN")
+    inflow_types = ("INCOME", "TRANSFER_IN", "GROUP_SETTLEMENT_RECEIVED", "FUND_WITHDRAWAL", "ADJUSTMENT_IN")
     outflow_types = ("EXPENSE", "TRANSFER_OUT", "GROUP_EXPENSE_PAYMENT", "FUND_CONTRIBUTION", "GROUP_SETTLEMENT_PAID", "ADJUSTMENT_OUT")
 
     ledger_diff = db.execute(
@@ -41,6 +41,10 @@ def create_wallet(db: Session, user_id: uuid.UUID, data: WalletCreate) -> Wallet
         wallet_type=data.wallet_type.upper(),
         currency=data.currency.upper(),
         opening_balance=data.opening_balance,
+        bank_code=data.bank_code.strip() if data.bank_code else None,
+        bank_name=data.bank_name.strip() if data.bank_name else None,
+        account_number=data.account_number.strip() if data.account_number else None,
+        account_holder_name=data.account_holder_name.strip().upper() if data.account_holder_name else None,
     )
     db.add(wallet)
     db.commit()
@@ -72,7 +76,22 @@ def get_user_wallets_with_balance(
         query = query.where(Wallet.is_archived.is_(False))
     query = query.order_by(Wallet.created_at.asc())
 
-    wallets = db.execute(query).scalars().all()
+    wallets = list(db.execute(query).scalars().all())
+
+    # Nếu người dùng chưa có bất kỳ ví nào, tự động cấp ví Tiền mặt mặc định
+    if len(wallets) == 0:
+        default_wallet = Wallet(
+            owner_user_id=user_id,
+            name="Tiền mặt",
+            wallet_type="CASH",
+            currency="VND",
+            opening_balance=0,
+        )
+        db.add(default_wallet)
+        db.commit()
+        db.refresh(default_wallet)
+        wallets = [default_wallet]
+
     results = []
     for w in wallets:
         current_bal = calculate_wallet_balance(db, w)
@@ -84,6 +103,10 @@ def get_user_wallets_with_balance(
                 wallet_type=w.wallet_type,
                 currency=w.currency,
                 opening_balance=w.opening_balance,
+                bank_code=w.bank_code,
+                bank_name=w.bank_name,
+                account_number=w.account_number,
+                account_holder_name=w.account_holder_name,
                 is_archived=w.is_archived,
                 created_at=w.created_at,
                 current_balance=current_bal,
@@ -100,6 +123,14 @@ def update_wallet(
         wallet.name = data.name.strip()
     if data.wallet_type is not None:
         wallet.wallet_type = data.wallet_type.upper()
+    if data.bank_code is not None:
+        wallet.bank_code = data.bank_code.strip() if data.bank_code else None
+    if data.bank_name is not None:
+        wallet.bank_name = data.bank_name.strip() if data.bank_name else None
+    if data.account_number is not None:
+        wallet.account_number = data.account_number.strip() if data.account_number else None
+    if data.account_holder_name is not None:
+        wallet.account_holder_name = data.account_holder_name.strip().upper() if data.account_holder_name else None
     if data.is_archived is not None:
         wallet.is_archived = data.is_archived
 

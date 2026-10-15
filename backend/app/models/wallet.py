@@ -40,6 +40,22 @@ class Wallet(Base):
         default=0,
         nullable=False,
     )
+    bank_code: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    bank_name: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+    account_number: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+    account_holder_name: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
     is_archived: Mapped[bool] = mapped_column(
         Boolean,
         default=False,

@@ -60,6 +60,10 @@ def get_wallet_detail(
         wallet_type=wallet.wallet_type,
         currency=wallet.currency,
         opening_balance=wallet.opening_balance,
+        bank_code=wallet.bank_code,
+        bank_name=wallet.bank_name,
+        account_number=wallet.account_number,
+        account_holder_name=wallet.account_holder_name,
         is_archived=wallet.is_archived,
         created_at=wallet.created_at,
         current_balance=balance,
@@ -67,6 +71,7 @@ def get_wallet_detail(
 
 
 @router.patch("/{wallet_id}", response_model=WalletResponse, dependencies=[Depends(verify_csrf)])
+@router.put("/{wallet_id}", response_model=WalletResponse, dependencies=[Depends(verify_csrf)])
 def update_existing_wallet(
     wallet_id: uuid.UUID,
     data: WalletUpdate,

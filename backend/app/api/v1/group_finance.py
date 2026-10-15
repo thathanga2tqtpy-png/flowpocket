@@ -1,5 +1,6 @@
 import uuid
-from typing import List
+from datetime import date
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from app.schemas.group_finance import (
     FundWithdrawalRequest,
     GroupFundTransactionResponse,
     CreateSettlementRequest,
+    ConfirmSettlementRequest,
     GroupSettlementResponse,
     GroupDebtOverview,
 )
@@ -57,7 +59,13 @@ def create_group_expense(
 )
 def list_group_expenses(
     group_id: uuid.UUID,
-    limit: int = Query(50, ge=1, le=100),
+    from_date: Optional[date] = Query(None, description="Lọc từ ngày (YYYY-MM-DD)"),
+    to_date: Optional[date] = Query(None, description="Lọc đến ngày (YYYY-MM-DD)"),
+    payment_source: Optional[str] = Query(None, description="Lọc theo nguồn thanh toán (MEMBER hoặc FUND)"),
+    paid_by_user_id: Optional[uuid.UUID] = Query(None, description="Lọc theo thành viên đã trả tiền"),
+    member_user_id: Optional[uuid.UUID] = Query(None, description="Lọc theo thành viên chịu phần chia"),
+    status: Optional[str] = Query(None, description="Lọc theo trạng thái (POSTED hoặc VOID)"),
+    limit: int = Query(100, ge=1, le=200),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -66,6 +74,12 @@ def list_group_expenses(
         db=db,
         group_id=group_id,
         user_id=current_user.id,
+        from_date=from_date,
+        to_date=to_date,
+        payment_source=payment_source,
+        paid_by_user_id=paid_by_user_id,
+        member_user_id=member_user_id,
+        status=status,
         limit=limit,
         offset=offset,
     )
@@ -105,6 +119,7 @@ def _serialize_expense(expense) -> GroupExpenseResponse:
         )
         for s in expense.splits
     ]
+    splits_resp.sort(key=lambda s: s.amount_owed, reverse=True)
 
     return GroupExpenseResponse(
         id=expense.id,
@@ -116,6 +131,8 @@ def _serialize_expense(expense) -> GroupExpenseResponse:
         paid_by_user_id=expense.paid_by_user_id,
         paid_by_name=expense.payer.display_name if expense.payer else None,
         fund_id=expense.fund_id,
+        category_id=expense.category_id,
+        category_name=expense.category.name if expense.category else None,
         split_method=expense.split_method,
         status=expense.status,
         created_by_user_id=expense.created_by_user_id,
@@ -325,6 +342,7 @@ def list_settlements(
 def confirm_settlement(
     group_id: uuid.UUID,
     settlement_id: uuid.UUID,
+    payload: Optional[ConfirmSettlementRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -333,6 +351,7 @@ def confirm_settlement(
         group_id=group_id,
         settlement_id=settlement_id,
         current_user_id=current_user.id,
+        payload=payload,
     )
     return _serialize_settlement(s)
 

@@ -35,6 +35,18 @@ def register_user(db: Session, req: UserRegister) -> User:
         status="ACTIVE",
     )
     db.add(user)
+    db.flush()
+
+    # Tự động tạo ví Tiền mặt mặc định (Auto-provisioning)
+    from app.models.wallet import Wallet
+    default_wallet = Wallet(
+        owner_user_id=user.id,
+        name="Tiền mặt",
+        wallet_type="CASH",
+        currency="VND",
+        opening_balance=0,
+    )
+    db.add(default_wallet)
     db.commit()
     db.refresh(user)
     return user

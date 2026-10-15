@@ -5,6 +5,7 @@ from app.api.v1.categories import router as categories_router
 from app.api.v1.transactions import router as transactions_router
 from app.api.v1.groups import router as groups_router
 from app.api.v1.group_finance import router as group_finance_router
+from app.api.v1.qr_payments import router as qr_payments_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -15,3 +16,4 @@ api_v1_router.include_router(categories_router)
 api_v1_router.include_router(transactions_router)
 api_v1_router.include_router(groups_router)
 api_v1_router.include_router(group_finance_router, prefix="/groups", tags=["Group Finance"])
+api_v1_router.include_router(qr_payments_router)

@@ -6,6 +6,10 @@ export interface Wallet {
   currency: string;
   opening_balance: number;
   current_balance: number;
+  bank_code?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  account_holder_name?: string | null;
   is_archived: boolean;
   created_at: string;
 }
@@ -31,6 +35,8 @@ export interface Transaction {
   description: string | null;
   transaction_date: string;
   transfer_group_id: string | null;
+  source_type?: string | null;
+  source_id?: string | null;
   created_at: string;
 }
 
@@ -48,5 +54,6 @@ export interface FinancialSummary {
   net_cash_flow: number;
   wallets: Wallet[];
   expense_breakdown: CategoryExpenseBreakdown[];
+  income_breakdown?: CategoryExpenseBreakdown[];
 }
 

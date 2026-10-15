@@ -28,6 +28,7 @@ def get_transactions(
     wallet_id: uuid.UUID | None = Query(None, description="Lọc theo ví"),
     category_id: uuid.UUID | None = Query(None, description="Lọc theo danh mục"),
     transaction_type: str | None = Query(None, description="Lọc theo loại giao dịch (INCOME, EXPENSE, TRANSFER_IN, TRANSFER_OUT...)"),
+    source_type: str | None = Query(None, description="Lọc theo nguồn (PERSONAL, GROUP, GROUP_EXPENSE, GROUP_SETTLEMENT)"),
     from_date: datetime | None = Query(None, description="Từ ngày"),
     to_date: datetime | None = Query(None, description="Đến ngày"),
     limit: int = Query(50, ge=1, le=100),
@@ -35,13 +36,14 @@ def get_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Lấy danh sách lịch sử giao dịch kèm bộ lọc thời gian, ví và danh mục"""
+    """Lấy danh sách lịch sử giao dịch kèm bộ lọc thời gian, ví, danh mục và nguồn gốc (cá nhân/nhóm)"""
     return list_transactions(
         db=db,
         user_id=current_user.id,
         wallet_id=wallet_id,
         category_id=category_id,
         transaction_type=transaction_type,
+        source_type=source_type,
         from_date=from_date,
         to_date=to_date,
         limit=limit,

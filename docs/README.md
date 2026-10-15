@@ -21,7 +21,8 @@ Bộ tài liệu này là nguồn mô tả thống nhất để người phát t
 4. [`03_THIET_KE_CSDL.md`](03_THIET_KE_CSDL.md) — các bảng, quan hệ và ràng buộc dữ liệu dự kiến.
 5. [`04_BAO_MAT_PHAN_QUYEN.md`](04_BAO_MAT_PHAN_QUYEN.md) — riêng tư, xác thực, quyền truy cập và các yêu cầu bảo mật.
 6. [`05_KE_HOACH_TRIEN_KHAI.md`](05_KE_HOACH_TRIEN_KHAI.md) — các milestone và tiêu chí nghiệm thu.
-7. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.
+7. [`06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md`](06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md) — cấu trúc module hóa backend service, phân rã component frontend và chuẩn kế toán Net Expense.
+8. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.
 
 
 ## Quy ước quan trọng

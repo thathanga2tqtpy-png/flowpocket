@@ -32,48 +32,72 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-sky-500/20">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-lg bg-slate-900 flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
               FP
             </div>
             <div>
-              <span className="text-lg font-extrabold text-slate-900 tracking-tight block leading-tight">
+              <span className="text-base font-bold text-slate-900 tracking-tight block leading-tight">
                 FlowPocket
               </span>
-              <span className="text-[11px] font-medium text-slate-400 block">
-                Tài chính cá nhân & Chi tiêu nhóm
+              <span className="text-[10px] text-slate-400 block hidden sm:block">
+                Tài chính cá nhân & Nhóm
               </span>
             </div>
           </div>
+
+          {/* Desktop Navigation Tabs */}
+          {user && (
+            <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <button
+                onClick={() => setFinanceTab("personal")}
+                className={`py-1 px-3 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                  financeTab === "personal"
+                    ? "bg-white text-slate-900 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Wallet className="h-3.5 w-3.5" />
+                <span>Cá nhân</span>
+              </button>
+
+              <button
+                onClick={() => setFinanceTab("groups")}
+                className={`py-1 px-3 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                  financeTab === "groups"
+                    ? "bg-white text-slate-900 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Chi tiêu nhóm</span>
+              </button>
+            </div>
+          )}
 
           {/* User Profile Bar / Auth status */}
           {user ? (
             <div className="relative flex items-center gap-2">
               <button
-                onClick={() => setShowProfile(!showProfile)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition shadow-sm cursor-pointer"
+                onClick={() => setShowProfile(true)}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer"
               >
-                <div className="h-7 w-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs">
+                <div className="h-6 w-6 rounded bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
                   {user.display_name.charAt(0).toUpperCase()}
                 </div>
-                <div className="text-left hidden sm:block">
-                  <span className="text-xs font-bold text-slate-800 block leading-tight">
-                    {user.display_name}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block">
-                    {user.email}
-                  </span>
-                </div>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-xs font-medium text-slate-800 hidden sm:inline">
+                  {user.display_name}
+                </span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
               </button>
 
               <button
                 onClick={() => logout()}
                 title="Đăng xuất"
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -90,28 +114,28 @@ function AppContent() {
       </header>
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 sm:pb-8">
         {authLoading ? (
           <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-400 space-y-3">
-            <div className="h-8 w-8 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-8 w-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-xs">Đang tải dữ liệu phiên làm việc...</p>
           </div>
         ) : user ? (
           /* ========================================================================= */
           /* LOGGED IN DASHBOARD VIEW */
           /* ========================================================================= */
-          <div className="space-y-6">
-            {/* User Profile Popover Modal */}
+          <div className="space-y-4">
+            {/* User Profile Dialog Modal */}
             {showProfile && (
-              <div className="relative animate-in fade-in zoom-in-95 duration-150">
-                <div className="absolute right-0 top-0 z-40 w-full sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl p-5">
-                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+                <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-100">
+                    <span className="text-sm font-bold text-slate-800">
                       Hồ sơ người dùng
                     </span>
                     <button
                       onClick={() => setShowProfile(false)}
-                      className="text-slate-400 hover:text-slate-600 p-1"
+                      className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -120,33 +144,6 @@ function AppContent() {
                 </div>
               </div>
             )}
-
-            {/* Top Navigation Switcher: Cá nhân vs Chi tiêu nhóm */}
-            <div className="bg-slate-200/80 p-1.5 rounded-2xl flex max-w-md mx-auto shadow-inner">
-              <button
-                onClick={() => setFinanceTab("personal")}
-                className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  financeTab === "personal"
-                    ? "bg-white text-sky-700 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Wallet className="h-4 w-4 text-sky-600" />
-                <span>Tài chính cá nhân</span>
-              </button>
-
-              <button
-                onClick={() => setFinanceTab("groups")}
-                className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  financeTab === "groups"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Users className="h-4 w-4 text-indigo-600" />
-                <span>Chi tiêu nhóm & Quỹ</span>
-              </button>
-            </div>
 
             {/* Dashboard Content */}
             <div className="animate-in fade-in duration-200">
@@ -161,10 +158,10 @@ function AppContent() {
           /* ========================================================================= */
           /* LANDING & AUTH VIEW (CHƯA ĐĂNG NHẬP) */
           /* ========================================================================= */
-          <div className="py-6 sm:py-12">
+          <div className="py-2 sm:py-8 lg:py-12">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Left Column: Hero Showcase */}
-              <div className="lg:col-span-7 space-y-6 text-left">
+              {/* Left Column: Hero Showcase - Chỉ hiển thị trên Desktop (lg) */}
+              <div className="hidden lg:block lg:col-span-7 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-100 text-sky-800 text-xs font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-sky-600" />
                   <span>Nền tảng quản lý tài chính thông minh</span>
@@ -223,8 +220,18 @@ function AppContent() {
               </div>
 
               {/* Right Column: Clean Auth Card */}
-              <div className="lg:col-span-5">
-                <div className="bg-white rounded-3xl shadow-xl border border-slate-200/80 p-6 sm:p-8 space-y-6">
+              <div className="w-full max-w-md mx-auto lg:max-w-none lg:col-span-5">
+                <div className="bg-white rounded-3xl shadow-xl border border-slate-200/80 p-5 sm:p-8 space-y-5 sm:space-y-6">
+                  {/* Tiêu đề ngắn gọn trên mobile */}
+                  <div className="lg:hidden text-center pb-1">
+                    <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                      Chào mừng đến FlowPocket
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Quản lý tài chính cá nhân & chia tiền nhóm thông minh
+                    </p>
+                  </div>
+
                   {/* Segmented Auth Switcher */}
                   <div className="flex border border-slate-200 rounded-xl p-1 bg-slate-100/80">
                     <button
@@ -267,19 +274,50 @@ function AppContent() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-4 text-center">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
-          <p>© {new Date().getFullYear()} FlowPocket. Giải pháp tài chính cá nhân & chi tiêu nhóm.</p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>Mã hóa Argon2id</span>
-            <span>•</span>
-            <span>Bảo toàn số nguyên VND</span>
-            <span>•</span>
-            <span>PWA Offline Shell</span>
-          </div>
-        </div>
-      </footer>
+      {/* Mobile Bottom Navigation Bar (Dành riêng cho trải nghiệm Mobile-First) */}
+      {user && (
+        <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around h-14 px-2 shadow-lg">
+          <button
+            onClick={() => {
+              setFinanceTab("personal");
+              setShowProfile(false);
+            }}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-semibold transition ${
+              financeTab === "personal" && !showProfile
+                ? "text-sky-600"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <Wallet className="h-5 w-5 mb-0.5" />
+            <span>Cá nhân</span>
+          </button>
+          <button
+            onClick={() => {
+              setFinanceTab("groups");
+              setShowProfile(false);
+            }}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-semibold transition ${
+              financeTab === "groups" && !showProfile
+                ? "text-sky-600"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <Users className="h-5 w-5 mb-0.5" />
+            <span>Nhóm</span>
+          </button>
+          <button
+            onClick={() => setShowProfile(true)}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-semibold transition ${
+              showProfile
+                ? "text-sky-600"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <User className="h-5 w-5 mb-0.5" />
+            <span>Tài khoản</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

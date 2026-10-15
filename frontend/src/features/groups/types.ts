@@ -78,6 +78,8 @@ export interface GroupExpense {
   status: "POSTED" | "VOID";
   created_by_user_id: string;
   void_reason?: string | null;
+  category_id?: string | null;
+  category_name?: string | null;
   created_at: string;
   splits: GroupExpenseSplit[];
 }
@@ -88,6 +90,8 @@ export interface CreateGroupExpensePayload {
   expense_date?: string;
   payment_source: "MEMBER" | "FUND";
   paid_by_user_id?: string | null;
+  payer_wallet_id?: string | null;
+  category_id?: string | null;
   split_method: "EQUAL" | "CUSTOM";
   splits: {
     member_user_id: string;

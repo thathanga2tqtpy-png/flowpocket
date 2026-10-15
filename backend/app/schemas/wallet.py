@@ -8,11 +8,19 @@ class WalletCreate(BaseModel):
     wallet_type: str = Field(default="CASH", description="CASH, BANK, E_WALLET, OTHER")
     opening_balance: int = Field(default=0, ge=0, description="Số dư ban đầu (VND, số nguyên không âm)")
     currency: str = Field(default="VND", max_length=10)
+    bank_code: str | None = Field(default=None, max_length=20)
+    bank_name: str | None = Field(default=None, max_length=100)
+    account_number: str | None = Field(default=None, max_length=50)
+    account_holder_name: str | None = Field(default=None, max_length=100)
 
 
 class WalletUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     wallet_type: str | None = None
+    bank_code: str | None = Field(default=None, max_length=20)
+    bank_name: str | None = Field(default=None, max_length=100)
+    account_number: str | None = Field(default=None, max_length=50)
+    account_holder_name: str | None = Field(default=None, max_length=100)
     is_archived: bool | None = None
 
 
@@ -25,6 +33,10 @@ class WalletResponse(BaseModel):
     wallet_type: str
     currency: str
     opening_balance: int
+    bank_code: str | None = None
+    bank_name: str | None = None
+    account_number: str | None = None
+    account_holder_name: str | None = None
     is_archived: bool
     created_at: datetime
 

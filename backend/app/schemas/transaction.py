@@ -34,6 +34,8 @@ class TransactionResponse(BaseModel):
     description: str | None
     transaction_date: datetime
     transfer_group_id: uuid.UUID | None
+    source_type: str | None = None
+    source_id: uuid.UUID | None = None
     created_at: datetime
 
 
@@ -51,4 +53,5 @@ class FinancialSummary(BaseModel):
     net_cash_flow: int
     wallets: list[WalletWithBalanceResponse]
     expense_breakdown: list[CategoryExpenseBreakdown]
+    income_breakdown: list[CategoryExpenseBreakdown] = []
 

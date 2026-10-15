@@ -50,6 +50,12 @@ class GroupExpense(Base):
         nullable=True,
         index=True,
     )
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     split_method: Mapped[str] = mapped_column(
         String(20),  # 'EQUAL', 'CUSTOM'
         nullable=False,
@@ -97,6 +103,7 @@ class GroupExpense(Base):
     payer = relationship("User", foreign_keys=[paid_by_user_id])
     creator = relationship("User", foreign_keys=[created_by_user_id])
     fund = relationship("GroupFund", back_populates="expenses")
+    category = relationship("Category", foreign_keys=[category_id])
     splits: Mapped[list["GroupExpenseSplit"]] = relationship(
         "GroupExpenseSplit",
         back_populates="expense",

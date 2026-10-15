@@ -19,7 +19,9 @@ class CreateGroupExpenseRequest(BaseModel):
     expense_date: Optional[date] = None
     payment_source: str = Field("MEMBER", pattern="^(MEMBER|FUND)$")
     paid_by_user_id: Optional[uuid.UUID] = None  # Required if payment_source == 'MEMBER'
+    payer_wallet_id: Optional[uuid.UUID] = None  # Deduct from personal wallet if payment_source == 'MEMBER'
     fund_id: Optional[uuid.UUID] = None  # If None and source is FUND, uses group's default fund
+    category_id: Optional[uuid.UUID] = None  # Specific category for personal finance accounting
     split_method: str = Field("EQUAL", pattern="^(EQUAL|CUSTOM)$")
     splits: List[SplitItemPayload] = Field(..., min_length=1)
 
@@ -50,6 +52,8 @@ class GroupExpenseResponse(BaseModel):
     paid_by_user_id: Optional[uuid.UUID] = None
     paid_by_name: Optional[str] = None
     fund_id: Optional[uuid.UUID] = None
+    category_id: Optional[uuid.UUID] = None
+    category_name: Optional[str] = None
     split_method: str
     status: str
     created_by_user_id: uuid.UUID
@@ -78,12 +82,14 @@ class FundContributionRequest(BaseModel):
     amount: int = Field(..., gt=0)
     description: Optional[str] = Field(None, max_length=255)
     transaction_date: Optional[date] = None
+    payer_wallet_id: Optional[uuid.UUID] = None  # Ví cá nhân để trừ tiền khi đóng quỹ
 
 
 class FundWithdrawalRequest(BaseModel):
     amount: int = Field(..., gt=0)
     reason: str = Field(..., min_length=1, max_length=255)
     transaction_date: Optional[date] = None
+    recipient_wallet_id: Optional[uuid.UUID] = None  # Ví cá nhân để nhận tiền khi rút quỹ
 
 
 class GroupFundTransactionResponse(BaseModel):
@@ -110,6 +116,11 @@ class CreateSettlementRequest(BaseModel):
     to_user_id: uuid.UUID
     amount: int = Field(..., gt=0)
     note: Optional[str] = Field(None, max_length=255)
+    payer_wallet_id: Optional[uuid.UUID] = None  # Ví cá nhân để trừ tiền khi gửi thanh toán
+
+
+class ConfirmSettlementRequest(BaseModel):
+    recipient_wallet_id: Optional[uuid.UUID] = None  # Ví cá nhân để nhận và cộng tiền vào
 
 
 class GroupSettlementResponse(BaseModel):

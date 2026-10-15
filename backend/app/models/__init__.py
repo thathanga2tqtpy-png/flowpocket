@@ -9,6 +9,10 @@ from app.models.group_invitation import GroupInvitation
 from app.models.group_expense import GroupExpense, GroupExpenseSplit
 from app.models.group_fund import GroupFund, GroupFundTransaction
 from app.models.group_settlement import GroupSettlement
+from app.models.receiving_account import ReceivingAccount
+from app.models.incoming_payment_request import IncomingPaymentRequest
+from app.models.payment_reconciliation import PaymentReconciliation
+from app.models.outgoing_payment_request import OutgoingPaymentRequest
 
 __all__ = [
     "User",
@@ -24,4 +28,8 @@ __all__ = [
     "GroupFund",
     "GroupFundTransaction",
     "GroupSettlement",
+    "ReceivingAccount",
+    "IncomingPaymentRequest",
+    "PaymentReconciliation",
+    "OutgoingPaymentRequest",
 ]

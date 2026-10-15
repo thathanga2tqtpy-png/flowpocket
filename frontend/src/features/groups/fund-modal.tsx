@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api-client";
 import { GroupFund } from "./types";
-import { Wallet, X, ArrowDownRight, ArrowUpRight, AlertCircle } from "lucide-react";
+import { Wallet as WalletType } from "@/features/personal-finance/types";
+import { Wallet, X, ArrowDownRight, ArrowUpRight, AlertCircle, Loader2 } from "lucide-react";
+import { MoneyInput } from "@/components/ui/money-input";
 
 interface FundModalProps {
   isOpen: boolean;
@@ -27,6 +29,24 @@ export function FundModal({
   const [description, setDescription] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Personal wallets
+  const [userWallets, setUserWallets] = useState<WalletType[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
+
+  useEffect(() => {
+    if (isOpen) {
+      apiRequest<WalletType[]>("/api/v1/wallets").then((res) => {
+        if (res.data && res.data.length > 0) {
+          setUserWallets(res.data);
+          setSelectedWalletId(res.data[0].id);
+        } else {
+          setUserWallets([]);
+          setSelectedWalletId("");
+        }
+      });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -58,8 +78,16 @@ export function FundModal({
 
     const payload =
       activeTab === "CONTRIBUTE"
-        ? { amount, description: description.trim() || undefined }
-        : { amount, reason: description.trim() };
+        ? {
+            amount,
+            description: description.trim() || undefined,
+            payer_wallet_id: selectedWalletId || undefined,
+          }
+        : {
+            amount,
+            reason: description.trim(),
+            recipient_wallet_id: selectedWalletId || undefined,
+          };
 
     const res = await apiRequest(endpoint, {
       method: "POST",
@@ -79,36 +107,36 @@ export function FundModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-800 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white border border-slate-200 rounded-xl w-full max-w-md p-5 shadow-xl text-slate-800">
         <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-sky-800">
-            <Wallet className="h-5 w-5 text-sky-600" />
-            Quản lý quỹ chung nhóm
+          <h3 className="text-sm font-bold flex items-center gap-2 text-slate-800">
+            <Wallet className="h-4 w-4 text-slate-600" />
+            Quản lý quỹ nhóm
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Current Balance Banner */}
-        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center mb-4">
-          <span className="text-xs font-semibold text-slate-500 uppercase">Số dư quỹ hiện tại:</span>
-          <span className="text-base font-bold text-sky-700">
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center mb-4">
+          <span className="text-xs text-slate-500">Số dư quỹ hiện tại:</span>
+          <span className="text-sm font-bold text-slate-900">
             {fund ? fund.balance.toLocaleString("vi-VN") : 0} đ
           </span>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex border border-slate-200 rounded-xl p-1 bg-slate-100/80 mb-4">
+        <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-100 mb-4">
           <button
             type="button"
             onClick={() => {
               setActiveTab("CONTRIBUTE");
               setError(null);
             }}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
               activeTab === "CONTRIBUTE"
-                ? "bg-white text-emerald-700 shadow-sm"
+                ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -123,9 +151,9 @@ export function FundModal({
                 setActiveTab("WITHDRAW");
                 setError(null);
               }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === "WITHDRAW"
-                  ? "bg-white text-rose-700 shadow-sm"
+                  ? "bg-white text-slate-900 shadow-xs"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -136,44 +164,59 @@ export function FundModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-medium flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+          <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Số tiền (VND) <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              required
-              placeholder="0"
-              value={amount || ""}
-              onChange={(e) => setAmount(parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800 text-sm font-semibold"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          {/* Nhập số tiền quỹ */}
+          <MoneyInput
+            id="fund-amount"
+            label="Số tiền (VND)"
+            required
+            placeholder="0"
+            value={amount}
+            onChange={(val) => setAmount(val)}
+          />
+
+          {/* Ví cá nhân liên kết */}
+          {userWallets.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                {activeTab === "CONTRIBUTE" ? "Trừ từ ví cá nhân" : "Nhận vào ví cá nhân"}
+              </label>
+              <select
+                value={selectedWalletId}
+                onChange={(e) => setSelectedWalletId(e.target.value)}
+                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="">-- Không liên kết ví cá nhân --</option>
+                {userWallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} (Số dư: {w.current_balance.toLocaleString("vi-VN")} đ)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              {activeTab === "CONTRIBUTE" ? "Ghi chú / Mục đích" : "Lý do rút tiền *"}
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              {activeTab === "CONTRIBUTE" ? "Ghi chú" : "Lý do rút tiền *"}
             </label>
             <input
               type="text"
               required={activeTab === "WITHDRAW"}
               placeholder={
                 activeTab === "CONTRIBUTE"
-                  ? "VD: Tiền quỹ sinh hoạt tháng 10..."
-                  : "VD: Trả tiền cọc phòng nghỉ dưỡng..."
+                  ? "Ví dụ: Đóng quỹ tháng 10"
+                  : "Ví dụ: Trả tiền cọc phòng"
               }
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800 text-sm"
+              className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
             />
           </div>
 
@@ -182,24 +225,23 @@ export function FundModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+              className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`px-5 py-2 text-white rounded-xl text-xs font-semibold transition shadow-md ${
-                activeTab === "CONTRIBUTE"
-                  ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20"
-                  : "bg-rose-600 hover:bg-rose-500 shadow-rose-600/20"
-              }`}
+              className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5"
             >
-              {loading
-                ? "Đang xử lý..."
-                : activeTab === "CONTRIBUTE"
-                ? "Góp tiền vào quỹ"
-                : "Xác nhận rút quỹ"}
+              {loading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Đang xử lý...</span>
+                </>
+              ) : (
+                <span>{activeTab === "CONTRIBUTE" ? "Xác nhận đóng góp" : "Xác nhận rút quỹ"}</span>
+              )}
             </button>
           </div>
         </form>
@@ -207,4 +249,3 @@ export function FundModal({
     </div>
   );
 }
-
