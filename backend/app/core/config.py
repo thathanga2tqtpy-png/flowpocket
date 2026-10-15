@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     APP_SECRET_KEY: str = "flowpocket_development_secret_key_32bytes_min!"
     SESSION_COOKIE_NAME: str = "flowpocket_session"
     SESSION_COOKIE_SECURE: bool = False
+    SESSION_COOKIE_SAMESITE: str = "lax"
     SESSION_MAX_AGE_SECONDS: int = 604800  # 7 days
 
     FRONTEND_ORIGIN: str = "http://localhost:3000"
