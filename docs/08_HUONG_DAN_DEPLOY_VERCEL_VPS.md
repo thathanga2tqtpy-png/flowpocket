@@ -105,7 +105,8 @@ APP_SECRET_KEY=FLOWPOCKET_SUPER_SECRET_KEY_RANDOM_CHANGE_ME_64_CHARS_MINIMUM_202
 # Database PostgreSQL
 POSTGRES_DB=flowpocket
 POSTGRES_USER=flowpocket_admin
-POSTGRES_PASSWORD=MatKhauDatabaseBaoMatCucManh2026!#@$
+# Lưu ý: Mật khẩu KHÔNG chứa ký tự @ hoặc $ vì sẽ gây lỗi cú pháp connection string
+POSTGRES_PASSWORD=FlowPocketDatabasePass2026SecureCode
 
 # Port nội bộ container backend (không expose ra ngoài internet, Nginx sẽ reverse proxy)
 BACKEND_PORT=8001
