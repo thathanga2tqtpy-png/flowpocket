@@ -1,15 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { authService, AuthUser } from "./auth-service";
 
-export interface User {
-  id: string;
-  email: string;
-  display_name: string;
-  status: string;
-  created_at: string;
-}
+export type User = AuthUser;
 
 interface AuthContextType {
   user: User | null;
@@ -29,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const res = await apiRequest<User>("/api/v1/auth/me");
+      const res = await authService.getMe();
       if (res.data) {
         setUser(res.data);
       } else {
@@ -47,10 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await apiRequest<{ user: User }>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    const res = await authService.login(email, password);
 
     if (res.data?.user) {
       setUser(res.data.user);
@@ -60,10 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (email: string, password: string, display_name: string) => {
-    const res = await apiRequest<{ user: User }>("/api/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, display_name }),
-    });
+    const res = await authService.register(email, password, display_name);
 
     if (res.data?.user) {
       setUser(res.data.user);
@@ -74,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await apiRequest("/api/v1/auth/logout", { method: "POST" });
+      await authService.logout();
     } finally {
       setUser(null);
       if (typeof window !== "undefined") {
@@ -84,9 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const revokeAllSessions = async () => {
-    const res = await apiRequest<{ message: string }>("/api/v1/auth/revoke-all", {
-      method: "POST",
-    });
+    const res = await authService.revokeAllSessions();
     if (res.data) {
       setUser(null);
       return { success: true, message: res.data.message };

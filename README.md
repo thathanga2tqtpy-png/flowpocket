@@ -10,7 +10,16 @@ FlowPocket là ứng dụng quản lý tài chính cá nhân và chi tiêu nhóm
 flowpocket/
 │
 ├── frontend/                     # Next.js 14 (App Router) + TypeScript + Tailwind CSS (PWA)
-│   ├── src/                      # Source code (app, components, features, lib, types)
+│   ├── src/
+│   │   ├── app/                  # App Router pages, layout, styles, not-found
+│   │   ├── components/           # Reusable UI components (Navbar, MoneyInput, Toast...)
+│   │   ├── features/             # Feature Modules theo chuẩn 4 lớp (S-H-C-T)
+│   │   │   ├── auth/             # auth-service.ts, auth-context.tsx, auth-modal.tsx
+│   │   │   ├── groups/           # group-service.ts, hooks/use-group-management.ts, components/, modals
+│   │   │   ├── personal-finance/ # personal-finance-service.ts, hooks/use-personal-finance.ts, components/, modals
+│   │   │   └── qr-payments/      # qr-service.ts, components/ (Napas VietQR, VietQRModal...)
+│   │   ├── lib/                  # Tiện ích chung, api-client.ts, date-utils, number-to-words
+│   │   └── types/                # TypeScript domain models & DTOs
 │   ├── public/                   # Static assets, web manifest
 │   ├── package.json              # Frontend dependencies & npm scripts
 │   ├── package-lock.json         # Lockfile phiên bản thư viện
@@ -19,13 +28,13 @@ flowpocket/
 │
 ├── backend/                      # Python 3.11 + FastAPI + SQLAlchemy 2.x + Alembic
 │   ├── app/                      # Source code ứng dụng modular monolith
-│   │   ├── api/                  # API routers theo phiên bản
-│   │   ├── core/                 # Cấu hình môi trường (config.py), security
+│   │   ├── api/                  # API routers theo phiên bản (v1: auth, wallets, transactions, groups...)
+│   │   ├── core/                 # Cấu hình môi trường (config.py), security, vietqr
 │   │   ├── db/                   # Session database, readiness healthcheck
 │   │   ├── models/               # SQLAlchemy ORM models
 │   │   ├── schemas/              # Pydantic schemas (validation/serialization)
 │   │   ├── repositories/         # Data access abstractions
-│   │   └── services/             # Nghiệp vụ tài chính & transaction
+│   │   └── services/             # Nghiệp vụ tài chính & transaction (auth, wallet, group_finance...)
 │   ├── alembic/                  # Database migrations script & history
 │   ├── tests/                    # Pytest test suite
 │   ├── requirements.txt          # Python dependencies
@@ -41,10 +50,13 @@ flowpocket/
 ├── docs/                         # Toàn bộ tài liệu nghiệp vụ, kiến trúc & schema
 │   ├── 00_TONG_QUAN_FLOWPOCKET.md
 │   ├── 01_KIEN_TRUC_HE_THONG.md
-│   ├── 02_QUY_TAC_NGHIEP_VU.md
+│   ├── 02_QUY_TAC_NGHIEP_VU.md   # Quy tắc số học, quản lý thành viên, chia nợ, quỹ nhóm
 │   ├── 03_THIET_KE_CSDL.md
 │   ├── 04_BAO_MAT_PHAN_QUYEN.md
 │   ├── 05_KE_HOACH_TRIEN_KHAI.md
+│   ├── 06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md # Chuẩn hóa Services & Custom Hooks, Net Expense
+│   ├── 07_NHAN_TIEN_QR_VA_DOI_SOAT.md      # Tích hợp VietQR Napas
+│   ├── 08_HUONG_DAN_DEPLOY_VERCEL_VPS.md   # Triển khai Vercel + Docker VPS + DuckDNS SSL
 │   └── AGENT_IMPLEMENTATION_PROMPT.md
 │
 ├── .github/                      # CI/CD Workflows độc lập theo module
@@ -86,7 +98,55 @@ flowpocket/
 
 ---
 
-## 3. Cách cấu hình API URL giữa các môi trường
+## 3. Kiến trúc Frontend 4 Lớp (S-H-C-T)
+
+Toàn bộ mã nguồn Frontend được chuẩn hóa theo mô hình 4 tầng tách biệt, loại bỏ hoàn toàn việc gọi trực tiếp `apiRequest` trong các file giao diện `.tsx`:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│  Component Layer (.tsx)                                │
+│  - Trình diễn giao diện, Form, Modal, Feedback UI       │
+└───────────────────────────┬────────────────────────────┘
+                            │ sử dụng custom hook
+┌───────────────────────────▼────────────────────────────┐
+│  Hook Layer (hooks/use-<feature>.ts)                   │
+│  - Quản lý React State, Filters, Memoized Computations │
+│  - Điều phối làm mới dữ liệu & hiển thị Toast thông báo│
+└───────────────────────────┬────────────────────────────┘
+                            │ gọi pure service function
+┌───────────────────────────▼────────────────────────────┐
+│  Service Layer (<feature>-service.ts)                  │
+│  - Giao tiếp Backend thuần túy qua apiRequest          │
+│  - Chuẩn hóa payload, xử lý response typed             │
+└───────────────────────────┬────────────────────────────┘
+                            │ định nghĩa kiểu dữ liệu
+┌───────────────────────────▼────────────────────────────┐
+│  Types Layer (types.ts)                                │
+│  - Domain models, Enum, Request/Response DTOs          │
+└────────────────────────────────────────────────────────┘
+```
+
+- **Auth Module:** `auth-service.ts` + `useAuth()` (`auth-context.tsx`).
+- **Personal Finance Module:** `personal-finance-service.ts` + `usePersonalFinance()`.
+- **Group Finance Module:** `group-service.ts` + `useGroupManagement()`.
+- **QR Payment Module:** `qr-service.ts` + `VietQRModal`.
+
+---
+
+## 4. Quản trị Nhóm & Thành viên Toàn diện
+
+Hệ thống cung cấp trải nghiệm quản lý thành viên thông minh:
+1. **Mời qua Gmail trực tiếp:** Trưởng nhóm / Quản trị viên nhập Gmail của thành viên đã đăng ký FlowPocket để thêm tức thì vào nhóm.
+2. **Link mời công khai đa dụng (Multi-use Link):** Tạo liên kết mời dạng `?join_token=...` có thể chia sẻ cho nhiều thành viên tham gia cùng lúc mà không bị vô hiệu hóa sau 1 lượt bấm.
+3. **Phân quyền vai trò (Role Management):**
+   - **Chủ nhóm (`OWNER`):** Có toàn quyền, có thể chuyển nhượng quyền Chủ nhóm (Ownership Transfer) cho thành viên khác.
+   - **Quản trị viên (`ADMIN`):** Có thể thêm/xóa thành viên thường (`MEMBER`), quản lý chi tiêu và quỹ nhóm.
+   - **Thành viên (`MEMBER`):** Ghi chép chi tiêu, tham gia chia nợ, đóng góp và rút quỹ.
+4. **Xóa thành viên an toàn:** Thành viên bị xóa sẽ bị thu hồi quyền truy cập, nhưng toàn bộ lịch sử chi tiêu, chia nợ và dòng tiền quá khứ vẫn được bảo toàn nguyên vẹn trên sổ cái tài chính.
+
+---
+
+## 5. Cách cấu hình API URL giữa các môi trường
 
 Frontend sử dụng biến `NEXT_PUBLIC_API_BASE_URL` (hỗ trợ tương thích ngược `NEXT_PUBLIC_API_URL`):
 
@@ -96,7 +156,7 @@ Frontend sử dụng biến `NEXT_PUBLIC_API_BASE_URL` (hỗ trợ tương thíc
 
 ---
 
-## 4. Hướng dẫn chạy cục bộ (Local Development)
+## 6. Hướng dẫn chạy cục bộ (Local Development)
 
 ### Bước 1: Khởi động PostgreSQL 17 bằng Docker
 
@@ -158,7 +218,7 @@ npm run dev
 
 ---
 
-## 5. Chạy Kiểm thử tự động (Automated Tests)
+## 7. Chạy Kiểm thử tự động (Automated Tests)
 
 ### Backend (Pytest):
 ```bash
@@ -179,7 +239,7 @@ docker compose -f infra/docker-compose.dev.yml config
 
 ---
 
-## 6. Hướng dẫn Triển khai Độc lập (Deployment)
+## 8. Hướng dẫn Triển khai Độc lập (Deployment)
 
 ### A. Triển khai Frontend lên Vercel
 Frontend hoàn toàn độc lập và không yêu cầu deploy kèm backend:
@@ -210,7 +270,7 @@ Trong môi trường production:
 
 ---
 
-## 7. Trạng thái xác minh (Verification Status)
+## 9. Trạng thái xác minh (Verification Status)
 
 - **Đã xác minh thực tế trên máy:**
   - PostgreSQL 17 container chạy và giữ nguyên volume `flowpocket_flowpocket_pgdata`.

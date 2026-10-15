@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Index
+from sqlalchemy import String, DateTime, ForeignKey, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -29,6 +29,12 @@ class GroupInvitation(Base):
     invited_email: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
+    )
+    is_reusable: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
     )
     token_hash: Mapped[str] = mapped_column(
         String(64),

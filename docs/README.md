@@ -21,7 +21,7 @@ Bộ tài liệu này là nguồn mô tả thống nhất để người phát t
 4. [`03_THIET_KE_CSDL.md`](03_THIET_KE_CSDL.md) — các bảng, quan hệ và ràng buộc dữ liệu dự kiến.
 5. [`04_BAO_MAT_PHAN_QUYEN.md`](04_BAO_MAT_PHAN_QUYEN.md) — riêng tư, xác thực, quyền truy cập và các yêu cầu bảo mật.
 6. [`05_KE_HOACH_TRIEN_KHAI.md`](05_KE_HOACH_TRIEN_KHAI.md) — các milestone và tiêu chí nghiệm thu.
-7. [`06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md`](06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md) — cấu trúc module hóa backend service, phân rã component frontend và chuẩn kế toán Net Expense.
+7. [`06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md`](06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md) — cấu trúc module hóa backend service, phân rã component, chuẩn hóa Services & Custom Hooks Layer (S-H-C-T) và chuẩn kế toán Net Expense.
 8. [`07_NHAN_TIEN_QR_VA_DOI_SOAT.md`](07_NHAN_TIEN_QR_VA_DOI_SOAT.md) — thiết kế thanh toán QR Napas VietQR và đối soát chênh lệch.
 9. [`08_HUONG_DAN_DEPLOY_VERCEL_VPS.md`](08_HUONG_DAN_DEPLOY_VERCEL_VPS.md) — hướng dẫn chi tiết triển khai Frontend (Vercel) + Backend (VPS Docker) + Domain miễn phí (DuckDNS) & SSL HTTPS.
 10. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.

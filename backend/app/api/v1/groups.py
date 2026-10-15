@@ -12,6 +12,7 @@ from app.schemas.group import (
     GroupResponse,
     GroupDetailResponse,
     GroupMemberResponse,
+    AddMemberByEmailRequest,
     MemberRoleUpdate,
     InvitationCreate,
     InvitationResponse,
@@ -24,6 +25,7 @@ from app.services.group_service import (
     update_group,
     create_invitation,
     accept_invitation,
+    add_member_by_email,
     update_member_role,
     remove_member,
     leave_group,
@@ -93,6 +95,17 @@ def join_group(
     """Gia nhập nhóm bằng mã lời mời (kiểm tra hạn dùng, single-use, chống dùng lại)"""
     group = accept_invitation(db, current_user, data.token)
     return get_group_detail(db, group.id, current_user.id)
+
+
+@router.post("/{group_id}/members/add-by-email", response_model=GroupMemberResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_csrf)])
+def add_group_member_by_email(
+    group_id: uuid.UUID,
+    data: AddMemberByEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Trực tiếp thêm thành viên vào nhóm bằng email (chỉ OWNER hoặc ADMIN)"""
+    return add_member_by_email(db, group_id, current_user.id, data)
 
 
 @router.patch("/{group_id}/members/{target_user_id}", response_model=GroupMemberResponse, dependencies=[Depends(verify_csrf)])

@@ -39,13 +39,49 @@ Số dư hiện tại không phải giá trị do client tùy ý gửi lên. Tù
 
 ## 3. Tạo nhóm và thành viên
 
-- Mỗi nhóm có một `OWNER` đang hoạt động tại mọi thời điểm.
-- Role được gán theo từng nhóm: `OWNER`, `ADMIN`, `MEMBER`.
-- Không thể xem nhóm hoặc sửa dữ liệu nhóm chỉ bằng cách biết `group_id`; backend phải kiểm tra membership cho từng endpoint.
-- Lời mời dùng token ngẫu nhiên khó đoán; database chỉ lưu hash/digest của token. Lời mời có hạn sử dụng, có thể thu hồi và chỉ dùng một lần.
-- Khi chấp nhận lời mời, token phải còn hạn, chưa thu hồi, chưa dùng và người nhận phải đáp ứng điều kiện lời mời.
-- Thành viên bị xóa/rời nhóm không còn quyền đọc dữ liệu nhóm mới. Chính sách giữ bản ghi lịch sử phải được xử lý rõ: không xóa các bản ghi tài chính đã được dùng để tính toán; thay vào đó vô hiệu membership và giữ quan hệ lịch sử cần thiết.
-- Nếu Owner muốn rời nhóm, phải chuyển quyền Owner cho một thành viên hợp lệ trước hoặc thực hiện luồng đóng nhóm được xác định rõ.
+### Vai trò và Phân cấp Quyền hạn
+
+Mỗi nhóm có mô hình phân quyền 3 cấp độ (`GroupRole`):
+- **`OWNER` (Chủ nhóm):** Người sáng lập hoặc người nhận chuyển nhượng. Mỗi nhóm luôn có duy nhất một `OWNER` hoạt động tại mọi thời điểm. Có toàn quyền quản trị: thêm/xóa bất kỳ thành viên nào (trừ chính mình), phân quyền Admin/Member, chuyển giao quyền sở hữu (Ownership Transfer), giải tán hoặc cập nhật thông tin nhóm.
+- **`ADMIN` (Quản trị viên):** Có quyền mời thành viên mới, xóa thành viên thường (`MEMBER`), quản lý chi tiêu và quỹ chung. Admin không thể xóa `OWNER` hoặc `ADMIN` khác, và không thể tự thăng cấp cho người khác lên `OWNER`.
+- **`MEMBER` (Thành viên thường):** Có quyền xem thông tin nhóm, ghi nhận chi tiêu, tham gia vào các khoản chia nợ, đóng góp và rút quỹ. Thành viên chỉ có thể tự rời nhóm (`leave_group`), không thể xóa hoặc sửa quyền của người khác.
+
+### Cơ chế Mời và Tham gia Nhóm
+
+Hỗ trợ 2 phương thức mời linh hoạt:
+
+1. **Thêm trực tiếp bằng Gmail (`add_by_email`):**
+   - Áp dụng khi người dùng đã có tài khoản trên hệ thống FlowPocket.
+   - `OWNER` hoặc `ADMIN` nhập địa chỉ email của người nhận.
+   - Backend xác thực email tồn tại, kiểm tra người dùng chưa phải thành viên nhóm, và tự động tạo bản ghi `GroupMember` với vai trò `MEMBER` ngay lập tức mà không cần xác nhận qua token.
+
+2. **Liên kết mời công khai đa dụng (Multi-use Invite Link):**
+   - Phục vụ việc chia sẻ link vào nhóm chat (Zalo, Messenger, Telegram) để nhiều thành viên cùng tham gia.
+   - Token ngẫu nhiên cryptographically secure (`secrets.token_urlsafe(32)`), database chỉ lưu hàm băm SHA-256 (`token_hash`) để đảm bảo an toàn tuyệt đối ngay cả khi lộ database snapshot.
+   - Hỗ trợ cờ `reusable = True` cho phép một liên kết được sử dụng bởi nhiều tài khoản khác nhau cho đến khi hết hạn (`expires_at`) hoặc bị Chủ nhóm/Admin chủ động thu hồi (`is_revoked = True`).
+   - Trải nghiệm thông minh trên Frontend: Link mời dạng `https://app.flowpocket.vn/?join_token=XYZ` sẽ tự động mở modal tham gia nhóm và điền sẵn mã mời. Nếu người dùng chưa đăng nhập, mã mời được lưu tạm vào `sessionStorage` và tự động kích hoạt sau khi đăng nhập thành công.
+
+### Quy tắc Xóa Thành viên và Bảo toàn Sổ cái Tài chính
+
+1. **Ràng buộc phân quyền xóa:**
+   - `OWNER` có thể xóa bất kỳ `ADMIN` hoặc `MEMBER`.
+   - `ADMIN` chỉ có thể xóa `MEMBER` thường. `ADMIN` không thể xóa `OWNER` hay `ADMIN` khác.
+   - Thành viên không thể tự xóa chính mình bằng API xóa thành viên; nếu muốn rút lui phải sử dụng luồng "Rời nhóm" (`leave_group`).
+   - `OWNER` không thể rời nhóm nếu chưa thực hiện chuyển giao quyền chủ nhóm (`Ownership Transfer`).
+
+2. **Nguyên tắc bảo toàn sổ cái (Ledger Preservation):**
+   - Tuyệt đối **không thực hiện xóa vật lý (hard-delete)** bản ghi thành viên hoặc các giao dịch của họ trong cơ sở dữ liệu.
+   - Trạng thái thành viên được cập nhật sang vô hiệu hóa (`status = 'REMOVED'`).
+   - Mọi khoản chi tiêu đã chia (`expense_splits`), các khoản đã thanh toán hộ (`GroupExpense.paid_by_member_id`), các giao dịch quỹ (`GroupFundTransaction`) và các quyết toán nợ (`GroupSettlement`) trong quá khứ liên quan đến thành viên này **hoàn toàn được giữ nguyên vẹn**.
+   - Thành viên bị xóa sẽ lập tức bị chặn quyền truy cập vào bảng điều khiển nhóm và không xuất hiện trong danh sách lựa chọn người chia tiền cho các khoản chi mới.
+
+### Chuyển giao Quyền Sở hữu (Ownership Transfer)
+
+- `OWNER` hiện tại có thể chỉ định một thành viên (`ADMIN` hoặc `MEMBER`) hoạt động trong nhóm để trở thành `OWNER` mới.
+- Thao tác này được thực thi trong một database transaction duy nhất:
+  - Cập nhật thành viên được chỉ định thành `OWNER`.
+  - Cập nhật `OWNER` cũ trở thành `ADMIN` để tiếp tục tham gia sinh hoạt cùng nhóm.
+  - Cập nhật trường `created_by_user_id` của nhóm sang chủ sở hữu mới nếu cần đồng bộ quyền quản trị cấp cao.
 
 ## 4. Chi phí nhóm
 

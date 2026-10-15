@@ -47,9 +47,15 @@ class MemberRoleUpdate(BaseModel):
     role: str = Field(description="ADMIN hoặc MEMBER hoặc OWNER (chuyển quyền sở hữu)")
 
 
+class AddMemberByEmailRequest(BaseModel):
+    email: EmailStr = Field(description="Email của thành viên cần thêm vào nhóm")
+    role: str = Field(default="MEMBER", description="Vai trò: MEMBER hoặc ADMIN")
+
+
 class InvitationCreate(BaseModel):
     invited_email: EmailStr | None = None
     expires_in_days: int = Field(default=7, ge=1, le=30)
+    reusable: bool = Field(default=False, description="Cho phép nhiều người cùng tham gia bằng mã này")
 
 
 class InvitationResponse(BaseModel):
@@ -57,6 +63,7 @@ class InvitationResponse(BaseModel):
     group_id: uuid.UUID
     group_name: str
     invited_email: str | None
+    is_reusable: bool = False
     raw_token: str
     expires_at: datetime
     created_at: datetime

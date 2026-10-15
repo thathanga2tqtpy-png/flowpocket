@@ -114,21 +114,31 @@ Nếu agent chọn cấu trúc tách `wallet_transfers` khỏi ledger hoặc dù
 - `joined_at`, `left_at` nullable
 - unique/partial unique đảm bảo không có membership hoạt động trùng `(group_id, user_id)`
 
-Phải có logic đảm bảo một nhóm có đúng một Owner hiện hành. Không chỉ trông cậy vào frontend.
+**Ngữ nghĩa nghiệp vụ của `status` và Bảo toàn Sổ cái (Ledger Preservation):**
+- `ACTIVE`: Thành viên đang hoạt động trong nhóm, tham gia chia tiền, nạp/rút quỹ và tạo chi phí.
+- `LEFT`: Thành viên chủ động rời nhóm (yêu cầu không phải là `OWNER`).
+- `REMOVED`: Thành viên bị `OWNER` hoặc `ADMIN` loại khỏi nhóm.
+- **Ràng buộc an toàn:** Hệ thống **tuyệt đối không xóa vật lý (hard-delete)** bản ghi `group_members` vì nó liên kết mật thiết tới các bản ghi tài chính lịch sử (`GroupExpense.paid_by_member_id`, `ExpenseSplit.member_id`, `GroupSettlement`). Khi chuyển sang `REMOVED`, người dùng bị chặn toàn bộ quyền xem/sửa dữ liệu nhóm mới nhưng các con số công nợ và chi tiêu quá khứ vẫn giữ nguyên vẹn 100%.
+- **Chuyển giao quyền sở hữu:** Một nhóm chỉ có đúng một `OWNER` tại một thời điểm. Khi `OWNER` chuyển quyền cho người khác, role của chủ nhóm cũ tự động chuyển thành `ADMIN` trong cùng database transaction.
 
 ### `group_invitations`
 
 - `id` UUID PK
 - `group_id` FK → `finance_groups.id`
 - `created_by_user_id` FK → `app_users.id`
-- `invited_email` nullable nếu invite không gắn email
-- `token_hash` unique
-- `expires_at`
+- `invited_email` nullable (dùng để phân biệt 2 loại lời mời)
+- `token_hash` String(64) SHA-256 unique
+- `expires_at` TIMESTAMP WITH TIME ZONE
 - `accepted_at`, `revoked_at` nullable
 - `accepted_by_user_id` nullable FK → `app_users.id`
 - timestamps
 
-Không lưu invitation token thô. Chỉ trả token cho người mời một lần khi tạo link; endpoint xác nhận phải kiểm tra hash, hạn và trạng thái.
+**Phân loại Lời mời & Thêm Thành viên:**
+1. **Link công khai đa dụng (`invited_email IS NULL`):** Cho phép chia sẻ vào nhóm chat (Zalo/Telegram). Nhiều thành viên có thể sử dụng cùng 1 link cho đến khi hết hạn (`expires_at`) hoặc bị thu hồi (`revoked_at`). Khi một người tham gia, bản ghi invitation không bị khóa (`accepted_at` không chặn người tiếp theo).
+2. **Lời mời riêng biệt (`invited_email IS NOT NULL`):** Chỉ dùng được đúng 1 lần cho tài khoản có email trùng khớp (`accepted_at` được gán ngay khi tham gia thành công).
+3. **Thêm trực tiếp bằng Gmail (`POST /api/v1/groups/{id}/members/add-by-email`):** Thêm thành viên trực tiếp vào `group_members` mà không cần sinh token trung gian.
+
+Không lưu invitation token thô. Chỉ trả token cho người mời một lần khi tạo link; endpoint xác nhận kiểm tra hash bằng SHA-256, kiểm tra hạn và trạng thái thu hồi.
 
 ## 5. Chi phí và phần chia
 

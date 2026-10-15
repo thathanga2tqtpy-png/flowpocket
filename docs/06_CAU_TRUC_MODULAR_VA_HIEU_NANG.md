@@ -176,3 +176,65 @@ Nhằm khắc phục triệt để tình trạng một tài khoản nhận tiề
    - Là trung tâm duy nhất xử lý nghiệp vụ tài chính tập thể của nhóm.
    - Hỗ trợ đầy đủ: **Thành viên trả** (chia đều / tự chọn có công nợ) và **Quỹ chung chi** (không chia nợ, minh bạch 100%).
    - Tự động trừ ví cá nhân khi thành viên chi hộ và hiển thị lên sổ cái cá nhân mà không làm méo mó ngữ cảnh sử dụng.
+
+---
+
+## 10. Chuẩn hóa Kiến trúc Frontend theo Feature-Sliced (Services & Custom Hooks Layer)
+
+### Bối cảnh & Vấn đề giải quyết
+Trước khi thực hiện chuẩn hóa, các file `.tsx` (như `GroupDashboard`, `PersonalDashboard`, các modal tạo giao dịch, nạp quỹ, quyết toán) chứa trực tiếp hàng chục lời gọi `apiRequest('/api/v1/...')` với các payload rời rạc:
+- Logic xử lý lỗi (`try/catch`), format dữ liệu và quản lý state bị trùng lặp ở nhiều nơi.
+- Khó kiểm thử độc lập các hàm API.
+- Re-render không cần thiết khi state UI và state dữ liệu tài chính bị gộp chung.
+
+### Kiến trúc Phân tầng 4 Lớp (S-H-C-T)
+
+Hệ thống Frontend đã được tái cấu trúc toàn diện theo mô hình 4 tầng chuẩn mực:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│  Component Layer (Presentation & Modals)               │
+│  - group-dashboard.tsx, personal-dashboard.tsx         │
+│  - ExpenseModal, FundModal, SettlementModal, etc.       │
+│  - group-hero-card.tsx, personal-breakdown-reports.tsx  │
+└───────────────────────────┬────────────────────────────┘
+                            │ sử dụng custom hook
+┌───────────────────────────▼────────────────────────────┐
+│  Custom Hook Layer (State & Business Orchestration)    │
+│  - useGroupManagement: nhóm, thành viên, quỹ, nợ, lọc  │
+│  - usePersonalFinance: ví, giao dịch, chuyển tiền, KPI │
+│  - useAuth: phiên đăng nhập, cookie HttpOnly           │
+└───────────────────────────┬────────────────────────────┘
+                            │ gọi pure service function
+┌───────────────────────────▼────────────────────────────┐
+│  Service Layer (Pure Typed API Clients)                │
+│  - group-service.ts: API nhóm, quỹ, chi tiêu, nợ       │
+│  - personal-finance-service.ts: API ví, giao dịch, KPI │
+│  - auth-service.ts: API xác thực, phiên, revoke        │
+│  - qr-service.ts: API sinh mã VietQR Napas             │
+└───────────────────────────┬────────────────────────────┘
+                            │ sử dụng kiểu dữ liệu
+┌───────────────────────────▼────────────────────────────┐
+│  Types Layer (Domain Models & DTOs)                    │
+│  - group.ts, personal-finance.ts, auth.ts, vietqr.ts   │
+└────────────────────────────────────────────────────────┘
+```
+
+### Danh mục File & Trách nhiệm Module
+
+| Layer | Đường dẫn | Trách nhiệm chính |
+| :--- | :--- | :--- |
+| **Auth Service** | `features/auth/auth-service.ts` | Giao tiếp API auth: `getMe`, `login`, `register`, `logout`, `revokeAllSessions`. |
+| **Auth Hook** | `features/auth/auth-context.tsx` | Cung cấp `useAuth()` quản lý user hiện tại, trạng thái login, loading. |
+| **Group Service** | `features/groups/group-service.ts` | Tập trung 17 hàm API: `getGroups`, `getGroupDetail`, `createExpense`, `voidExpense`, `depositFund`, `withdrawFund`, `createSettlement`, `confirmSettlement`, `createInvitation`, `joinGroup`, `addMemberByEmail`, `updateMemberRole`, `removeMember`... |
+| **Group Hook** | `features/groups/hooks/use-group-management.ts` | Quản lý toàn bộ state nhóm, dữ liệu tài chính nhóm, bộ lọc ngày/người trả, tự động refresh khi có thay đổi. |
+| **Personal Service** | `features/personal-finance/personal-finance-service.ts` | Tập hợp API: `getWallets`, `createWallet`, `updateWallet`, `getTransactions`, `createTransaction`, `createTransfer`, `getCategories`, `getFinancialSummary`. |
+| **Personal Hook** | `features/personal-finance/hooks/use-personal-finance.ts` | Quản lý state ví, danh sách giao dịch, bộ lọc ví/thời gian, tính toán cơ cấu chi tiêu (`categoryBreakdown`). |
+| **QR Service** | `features/qr-payments/qr-service.ts` | Sinh mã VietQR Napas động và kiểm tra tính hợp lệ ngân hàng. |
+
+### Lợi ích Đạt được
+1. **100% Loại bỏ Raw API Call trong UI**: Không còn bất kỳ file `.tsx` nào gọi trực tiếp `apiRequest`. Tất cả đều sử dụng method có kiểu dữ liệu trả về rõ ràng.
+2. **Kích thước file giảm mạnh**: `PersonalDashboard` và `GroupDashboard` trở nên tinh gọn, chỉ làm nhiệm vụ kết nối Hook với các Sub-components.
+3. **Trải nghiệm người dùng mượt mà**: Các thao tác thêm chi tiêu, quyết toán, chuyển tiền tự động kích hoạt cập nhật số dư ví và dữ liệu báo cáo tức thì mà không cần reload trang.
+4. **Bảo mật và Kiểm soát lỗi tập trung**: Mọi lỗi mạng hoặc lỗi HTTP 4xx/5xx được chuẩn hóa thông báo qua hệ thống Toast tiếng Việt thân thiện.
+

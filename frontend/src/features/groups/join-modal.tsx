@@ -1,37 +1,60 @@
 "use client";
 
-import React, { useState } from "react";
-import { apiRequest } from "@/lib/api-client";
+import React, { useState, useEffect } from "react";
+import { groupService } from "./group-service";
 import { GroupMemberItem } from "./types";
 import { Link2, X, ShieldCheck } from "lucide-react";
 
 interface JoinModalProps {
   isOpen: boolean;
+  initialToken?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function JoinModal({ isOpen, onClose, onSuccess }: JoinModalProps) {
-  const [token, setToken] = useState("");
+export function JoinModal({ isOpen, initialToken = "", onClose, onSuccess }: JoinModalProps) {
+  const [token, setToken] = useState(initialToken);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (initialToken) {
+      setToken(initialToken);
+    }
+  }, [initialToken]);
+
   if (!isOpen) return null;
+
+  const extractToken = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (!trimmed) return "";
+    try {
+      if (trimmed.includes("join_token=") || trimmed.includes("token=")) {
+        const urlObj = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+        const extracted = urlObj.searchParams.get("join_token") || urlObj.searchParams.get("token");
+        if (extracted) return extracted.trim();
+      }
+    } catch {
+      const match = trimmed.match(/[?&](?:join_token|token)=([^&#]+)/);
+      if (match && match[1]) {
+        return decodeURIComponent(match[1]).trim();
+      }
+    }
+    return trimmed;
+  };
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token.trim()) {
-      setError("Vui lòng nhập hoặc dán mã lời mời");
+    const cleanToken = extractToken(token);
+    if (!cleanToken) {
+      setError("Vui lòng nhập hoặc dán mã lời mời (hoặc đường link mời)");
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const res = await apiRequest<GroupMemberItem>("/api/v1/groups/join", {
-      method: "POST",
-      body: JSON.stringify({ token: token.trim() }),
-    });
+    const res = await groupService.joinGroup(cleanToken);
 
     setLoading(false);
     if (res.error) {
@@ -49,7 +72,7 @@ export function JoinModal({ isOpen, onClose, onSuccess }: JoinModalProps) {
         <div className="flex justify-between items-center mb-5">
           <h3 className="text-lg font-bold flex items-center gap-2 text-sky-800">
             <Link2 className="h-5 w-5 text-sky-600" />
-            Tham gia nhóm bằng mã lời mời
+            Tham gia nhóm bằng mã hoặc link mời
           </h3>
           <button
             onClick={onClose}
@@ -68,16 +91,22 @@ export function JoinModal({ isOpen, onClose, onSuccess }: JoinModalProps) {
         <form onSubmit={handleJoin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Mã bảo mật lời mời (Token)
+              Mã bảo mật lời mời hoặc Đường link mời
             </label>
             <input
               type="text"
               required
-              placeholder="Dán mã mời (dài 43 ký tự) vào đây..."
+              placeholder="Dán mã mời hoặc link mời vào đây..."
               value={token}
-              onChange={(e) => setToken(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setToken(extractToken(val));
+              }}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800 placeholder-slate-400 text-sm font-mono"
             />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Hệ thống tự động nhận diện cả mã mời riêng lẻ hoặc toàn bộ đường link mời.
+            </p>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-xs text-slate-600">
@@ -109,4 +138,3 @@ export function JoinModal({ isOpen, onClose, onSuccess }: JoinModalProps) {
     </div>
   );
 }
-

@@ -142,17 +142,32 @@ def parse_tlv(payload: str) -> dict[str, str]:
 
 
 def generate_vietqr_payload(
-    bank_bin: str,
-    account_number: str,
+    bank_bin: str | None = None,
+    bank_code: str | None = None,
+    account_number: str = "",
     amount: int | None = None,
     memo: str | None = None,
-    point_of_initiation: str = "12",
+    point_of_initiation: str | None = None,
+    flexible_amount: bool = False,
 ) -> str:
     """
     Tạo chuỗi ký tự chuẩn VietQR EMVCo.
+    Hỗ trợ nhận tham số bank_bin hoặc bank_code (tự động tra cứu BIN).
     """
+    bin_str = bank_bin
+    if not bin_str and bank_code:
+        info = get_bank_info(bank_code)
+        if info:
+            bin_str = info["bin"]
+        else:
+            bin_str = bank_code
+
+    if not bin_str:
+        bin_str = "970422" # fallback default
+
+    poi = point_of_initiation or ("11" if flexible_amount or not amount else "12")
     clean_account = re.sub(r"[^a-zA-Z0-9]", "", str(account_number).strip())
-    sub_tag_00 = format_tlv("00", bank_bin.strip())
+    sub_tag_00 = format_tlv("00", bin_str.strip())
     sub_tag_01 = format_tlv("01", clean_account)
     beneficiary_payload = sub_tag_00 + sub_tag_01
 
@@ -163,7 +178,7 @@ def generate_vietqr_payload(
 
     parts = [
         format_tlv("00", "01"),
-        format_tlv("01", point_of_initiation),
+        format_tlv("01", poi),
         format_tlv("38", tag_38_payload),
         format_tlv("53", "704"),
     ]
@@ -231,3 +246,18 @@ def parse_vietqr_payload(raw_payload: str) -> dict:
             result["memo"] = sub62["08"]
 
     return result
+
+
+def verify_vietqr_payload(payload: str) -> bool:
+    """
+    Xác minh chuỗi payload có phải là mã VietQR hợp lệ không bằng cách phân tích TLV và kiểm tra CRC16.
+    """
+    if not payload or not isinstance(payload, str) or len(payload) < 8:
+        return False
+    data_to_check = payload[:-4]
+    expected_crc = payload[-4:]
+    if compute_crc16(data_to_check).upper() != expected_crc.upper():
+        return False
+    parsed = parse_vietqr_payload(payload)
+    return parsed.get("is_valid_vietqr", False)
+

@@ -58,27 +58,32 @@ backend/
 │   │       ├── wallets.py
 │   │       ├── transactions.py
 │   │       ├── categories.py
-│   │       ├── groups.py
-│   │       ├── group_expenses.py
-│   │       ├── group_funds.py
-│   │       └── settlements.py
+│   │       └── groups.py            # Quản trị nhóm, thành viên, chi tiêu, quỹ, quyết toán, VietQR
 │   ├── core/
 │   │   ├── config.py
 │   │   ├── security.py
+│   │   ├── vietqr.py                # Sinh mã VietQR Napas chuẩn EMVCo & danh sách ngân hàng
 │   │   ├── errors.py
 │   │   └── logging.py
 │   ├── db/
 │   │   ├── base.py
 │   │   ├── session.py
 │   │   └── health.py
-│   ├── models/
-│   ├── schemas/
+│   ├── models/                      # SQLAlchemy models (User, Wallet, Group, Member, Fund...)
+│   ├── schemas/                     # Pydantic schemas (Validation & Serialization)
 │   ├── repositories/
 │   ├── services/
-│   └── tests/
-├── alembic/
-├── alembic.ini
-├── requirements.txt hoặc pyproject.toml
+│   │   ├── auth_service.py          # Session auth, Argon2id, cookie HttpOnly
+│   │   ├── wallet_service.py        # Ví cá nhân & tự động cấp ví mặc định
+│   │   ├── transaction_service.py   # Thu/chi cá nhân, chuyển tiền giữa các ví
+│   │   ├── group_service.py         # Vòng đời nhóm, mời Gmail, link công khai, phân quyền
+│   │   └── group_finance/           # Modular package xử lý tài chính nhóm
+│   │       ├── expense_service.py   # Khoản chi & thuật toán phân chia Equal/Custom
+│   │       ├── fund_service.py      # Quản lý số dư và giao dịch quỹ nhóm
+│   │       ├── debt_calculator.py   # Ma trận nợ & thuật toán rút gọn nợ tham lam
+│   │       └── settlement_service.py # Vòng đời quyết toán nợ & hạch toán hoàn tiền
+│   └── tests/                       # Pytest test suite (33 tests pass)
+├── alembic/                         # Database migrations
 └── Dockerfile
 ```
 
@@ -90,34 +95,44 @@ Có thể điều chỉnh tên thư mục theo chuẩn thư viện hoặc reposi
 - **Repository:** truy vấn dữ liệu có tổ chức, nếu giúp codebase rõ ràng; không tạo abstraction thừa.
 - **Model:** bảng và ràng buộc quan hệ.
 
-## 4. Tổ chức frontend
+## 4. Tổ chức frontend (Chuẩn hóa Kiến trúc 4 Lớp S-H-C-T)
 
 ```text
 frontend/
 ├── src/
-│   ├── app/
-│   ├── components/
-│   ├── features/
-│   │   ├── auth/
-│   │   ├── personal-finance/
-│   │   ├── groups/
-│   │   ├── group-expenses/
-│   │   ├── group-funds/
-│   │   └── settlements/
-│   ├── lib/
-│   │   ├── api-client.ts
-│   │   ├── auth.ts
-│   │   ├── format-money.ts
-│   │   └── validators/
-│   └── types/
-├── public/
-│   ├── manifest.webmanifest
-│   └── icons/
+│   ├── app/                         # Next.js App Router (pages, layout, styles, not-found)
+│   ├── components/                  # Reusable UI components (Navbar, Toast, MoneyInput...)
+│   ├── features/                    # Feature Modules theo chuẩn 4 lớp
+│   │   ├── auth/                    # auth-service.ts, auth-context.tsx, auth-modal.tsx
+│   │   ├── groups/                  # Quản lý nhóm & tài chính nhóm
+│   │   │   ├── group-service.ts     # Pure API client tập trung 17 endpoints
+│   │   │   ├── hooks/               # useGroupManagement hook quản lý state & refresh
+│   │   │   ├── components/          # HeroCard, ExpenseList, DebtSection, MemberList...
+│   │   │   ├── group-dashboard.tsx  # Trình diễn trang nhóm tinh gọn
+│   │   │   └── ... (ExpenseModal, FundModal, SettlementModal, InviteModal, JoinModal...)
+│   │   ├── personal-finance/        # Quản lý tài chính cá nhân
+│   │   │   ├── personal-finance-service.ts # Pure API client (ví, giao dịch, báo cáo)
+│   │   │   ├── hooks/               # usePersonalFinance hook quản lý state & bộ lọc
+│   │   │   ├── components/          # FilterPanel, BreakdownReports, CashFlowChart...
+│   │   │   ├── personal-dashboard.tsx # Trình diễn trang cá nhân tinh gọn
+│   │   │   └── ... (WalletModal, TransactionModal, TransferModal...)
+│   │   └── qr-payments/             # Tích hợp VietQR Napas
+│   │       ├── qr-service.ts        # Sinh mã VietQR & kiểm tra thông tin ngân hàng
+│   │       └── components/          # VietQRModal & bộ tạo mã thanh toán
+│   ├── lib/                         # Tiện ích chung
+│   │   ├── api-client.ts            # Fetch wrapper chuẩn hóa credentials & lỗi
+│   │   ├── date-utils.ts            # Format ngày giờ tiếng Việt
+│   │   └── number-to-words.ts       # Đọc số tiền VND thành chữ tiếng Việt
+│   └── types/                       # TypeScript domain types & DTO schemas
+├── public/                          # Static assets & manifest.webmanifest
 ├── Dockerfile
 └── package.json
 ```
 
-Frontend nên gom phần gọi backend vào một API client thống nhất, có kiểu TypeScript và xử lý lỗi nhất quán. Tránh nhúng logic công nợ, xác minh role hoặc số dư quỹ thành quy tắc duy nhất ở client.
+**Quy tắc bất biến Frontend:**
+- **Không gọi trực tiếp `apiRequest` trong các file `.tsx`**: Mọi tương tác mạng phải đi qua tầng Service (`*-service.ts`).
+- **Giao diện chỉ Trình diễn (Presentation)**: Toàn bộ State, Effect và hàm điều phối xử lý dữ liệu được đóng gói trong Custom Hooks (`usePersonalFinance`, `useGroupManagement`, `useAuth`).
+- **Bảo toàn số nguyên tiền tệ**: Không dùng số thực để tính toán số dư và tiền nợ. Dùng component `MoneyInput` tự động định dạng và đọc chữ tiếng Việt.
 
 ## 5. PostgreSQL và Docker
 

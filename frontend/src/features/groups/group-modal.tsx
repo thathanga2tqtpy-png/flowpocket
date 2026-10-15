@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { groupService } from "./group-service";
 import { CreateGroupPayload } from "./types";
 import { Users, X } from "lucide-react";
 
@@ -36,10 +36,7 @@ export function GroupModal({ isOpen, onClose, onSuccess }: GroupModalProps) {
       currency,
     };
 
-    const res = await apiRequest("/api/v1/groups", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const res = await groupService.createGroup(payload);
 
     setLoading(false);
     if (res.error) {

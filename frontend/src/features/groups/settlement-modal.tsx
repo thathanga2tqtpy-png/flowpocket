@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api-client";
+import { groupService } from "./group-service";
+import { personalFinanceService } from "@/features/personal-finance/personal-finance-service";
 import { GroupMemberItem } from "./types";
 import { Wallet as WalletType } from "@/features/personal-finance/types";
 import { ArrowLeftRight, X, AlertCircle, Wallet as WalletIcon, Loader2 } from "lucide-react";
@@ -51,7 +52,7 @@ export function SettlementModal({
       if (defaultAmount) setAmount(defaultAmount);
 
       setWalletLoading(true);
-      apiRequest<WalletType[]>("/api/v1/wallets").then((res) => {
+      personalFinanceService.getWallets().then((res) => {
         setWalletLoading(false);
         if (res.data && res.data.length > 0) {
           setUserWallets(res.data);
@@ -95,10 +96,7 @@ export function SettlementModal({
       payer_wallet_id: selectedWalletId,
     };
 
-    const res = await apiRequest(`/api/v1/groups/${groupId}/settlements`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const res = await groupService.createSettlement(groupId, payload);
 
     setLoading(false);
     if (res.error) {

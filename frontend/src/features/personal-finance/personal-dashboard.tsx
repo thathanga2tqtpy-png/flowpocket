@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { apiRequest } from "@/lib/api-client";
-import { Wallet, Category, Transaction, FinancialSummary } from "./types";
+import React, { useState } from "react";
+import { Wallet } from "./types";
 import { WalletModal } from "./wallet-modal";
 import { TransactionModal } from "./transaction-modal";
 import { TransferModal } from "./transfer-modal";
-import { formatAuditDateTime, formatFullAuditTimestamp } from "@/lib/date-utils";
 import {
   Wallet as WalletIcon,
   BarChart3,
@@ -16,8 +14,7 @@ import {
 import { QRPaymentModal } from "@/features/qr-payments/qr-payment-modal";
 import { QRScannerModal } from "@/features/qr-payments/qr-scanner-modal";
 import { PendingExpensesCard } from "@/features/qr-payments/pending-expenses-card";
-import { qrPaymentService } from "@/features/qr-payments/qr-service";
-import { OutgoingPaymentRequest } from "@/features/qr-payments/types";
+import { formatAuditDateTime, formatFullAuditTimestamp } from "@/lib/date-utils";
 
 import { PersonalFilterPanel } from "./components/personal-filter-panel";
 import { PersonalAssetBanner } from "./components/personal-asset-banner";
@@ -25,26 +22,46 @@ import { PersonalWalletList } from "./components/personal-wallet-list";
 import { PersonalTransactionList } from "./components/personal-transaction-list";
 import { PersonalBreakdownReports } from "./components/personal-breakdown-reports";
 
-export function PersonalDashboard() {
-  const [viewMode, setViewMode] = useState<"overview" | "reports">("overview");
-  const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+import { usePersonalFinance } from "./hooks/use-personal-finance";
 
-  // Filters State
-  const [datePreset, setDatePreset] = useState<
-    "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH" | "CUSTOM"
-  >("ALL");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
-  const [selectedWalletId, setSelectedWalletId] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<string>("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [selectedSource, setSelectedSource] = useState<string>("");
-  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
-  const [selectedGroupName, setSelectedGroupName] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
+export function PersonalDashboard() {
+  const {
+    viewMode,
+    setViewMode,
+    summary,
+    categories,
+    transactions,
+    displayedTransactions,
+    loading,
+    pendingExpenses,
+    totalPendingAmount,
+    groups,
+    filteredTotalExpense,
+    filteredTotalIncome,
+    computedExpenseBreakdown,
+    computedIncomeBreakdown,
+    fetchData,
+    datePreset,
+    fromDate,
+    toDate,
+    selectedWalletId,
+    selectedType,
+    selectedCategoryId,
+    selectedSource,
+    selectedGroupName,
+    showFilters,
+    setShowFilters,
+    setFromDate,
+    setToDate,
+    setSelectedWalletId,
+    setSelectedType,
+    setSelectedCategoryId,
+    setSelectedSource,
+    setSelectedGroupName,
+    handlePresetChange,
+    resetFilters,
+    hasActiveFilters,
+  } = usePersonalFinance();
 
   // Modals state
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -54,145 +71,9 @@ export function PersonalDashboard() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
 
-  // Outgoing Pending Expenses state
-  const [pendingExpenses, setPendingExpenses] = useState<OutgoingPaymentRequest[]>([]);
-  const [totalPendingAmount, setTotalPendingAmount] = useState<number>(0);
-
-  // Compute dates based on preset
-  const handlePresetChange = (
-    preset: "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH" | "CUSTOM"
-  ) => {
-    setDatePreset(preset);
-    const now = new Date();
-
-    if (preset === "ALL") {
-      setFromDate("");
-      setToDate("");
-    } else if (preset === "TODAY") {
-      const todayStr = now.toISOString().split("T")[0];
-      setFromDate(todayStr);
-      setToDate(todayStr);
-    } else if (preset === "THIS_WEEK") {
-      const day = now.getDay();
-      const diffToMonday = (day === 0 ? -6 : 1) - day;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diffToMonday);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-
-      setFromDate(monday.toISOString().split("T")[0]);
-      setToDate(sunday.toISOString().split("T")[0]);
-    } else if (preset === "THIS_MONTH") {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setFromDate(firstDay.toISOString().split("T")[0]);
-      setToDate(lastDay.toISOString().split("T")[0]);
-    } else if (preset === "LAST_MONTH") {
-      const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
-      setFromDate(firstDay.toISOString().split("T")[0]);
-      setToDate(lastDay.toISOString().split("T")[0]);
-    }
-  };
-
-  useEffect(() => {
-    apiRequest<any[]>("/api/v1/groups").then((res) => {
-      if (res.data) {
-        setGroups(res.data.map((g: any) => ({ id: g.id, name: g.name })));
-      }
-    });
-  }, []);
-
-  const resetFilters = () => {
-    setDatePreset("ALL");
-    setFromDate("");
-    setToDate("");
-    setSelectedWalletId("");
-    setSelectedType("");
-    setSelectedCategoryId("");
-    setSelectedSource("");
-    setSelectedGroupName("");
-  };
-
-  const hasActiveFilters =
-    datePreset !== "ALL" ||
-    Boolean(fromDate) ||
-    Boolean(toDate) ||
-    Boolean(selectedWalletId) ||
-    Boolean(selectedType) ||
-    Boolean(selectedCategoryId) ||
-    Boolean(selectedSource) ||
-    Boolean(selectedGroupName);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const txParams = new URLSearchParams();
-      txParams.append("limit", "100");
-      if (selectedWalletId) txParams.append("wallet_id", selectedWalletId);
-      if (selectedCategoryId) txParams.append("category_id", selectedCategoryId);
-      if (selectedType) txParams.append("transaction_type", selectedType);
-      if (selectedSource) txParams.append("source_type", selectedSource);
-      if (fromDate) txParams.append("from_date", `${fromDate}T00:00:00`);
-      if (toDate) txParams.append("to_date", `${toDate}T23:59:59`);
-
-      const sumParams = new URLSearchParams();
-      if (fromDate) sumParams.append("from_date", `${fromDate}T00:00:00`);
-      if (toDate) sumParams.append("to_date", `${toDate}T23:59:59`);
-
-      const [sumRes, catRes, txRes, pendingRes] = await Promise.all([
-        apiRequest<FinancialSummary>(
-          `/api/v1/transactions/summary${sumParams.toString() ? `?${sumParams.toString()}` : ""}`
-        ),
-        apiRequest<Category[]>("/api/v1/categories"),
-        apiRequest<Transaction[]>(`/api/v1/transactions?${txParams.toString()}`),
-        qrPaymentService.listOutgoingPayments("PENDING"),
-      ]);
-
-      if (sumRes.data) setSummary(sumRes.data);
-      if (catRes.data) setCategories(catRes.data);
-      if (txRes.data) setTransactions(txRes.data);
-      if (pendingRes.data) {
-        setPendingExpenses(pendingRes.data.items);
-        setTotalPendingAmount(pendingRes.data.total_pending_amount);
-      }
-    } catch (err) {
-      console.error("Error fetching financial data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [fromDate, toDate, selectedWalletId, selectedCategoryId, selectedType, selectedSource]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const formatVND = (amount: number) => {
     return amount.toLocaleString("vi-VN") + " đ";
   };
-
-  const displayedTransactions = transactions.filter((t) => {
-    if (!selectedGroupName) return true;
-    return t.description?.includes(`[${selectedGroupName}]`);
-  });
-
-  const filteredTotalExpense = displayedTransactions
-    .filter(
-      (t) =>
-        t.transaction_type === "EXPENSE" ||
-        t.transaction_type === "GROUP_SETTLEMENT_PAID" ||
-        t.transaction_type === "FUND_CONTRIBUTION"
-    )
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const filteredTotalIncome = displayedTransactions
-    .filter(
-      (t) =>
-        t.transaction_type === "INCOME" ||
-        t.transaction_type === "GROUP_SETTLEMENT_RECEIVED" ||
-        t.transaction_type === "FUND_WITHDRAWAL"
-    )
-    .reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -329,7 +210,7 @@ export function PersonalDashboard() {
       {/* VIEW MODE 2: BÁO CÁO & PHÂN TÍCH */}
       {viewMode === "reports" && (
         <PersonalBreakdownReports
-          transactions={transactions}
+          transactions={displayedTransactions}
           summary={summary}
           formatVND={formatVND}
         />
