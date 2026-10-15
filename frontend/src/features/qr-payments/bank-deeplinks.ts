@@ -137,6 +137,7 @@ export interface BankTransferDetails {
   bankCode?: string | null;
   bankBin?: string | null;
   accountNumber?: string | null;
+  accountHolderName?: string | null;
   amount?: number | null;
   memo?: string | null;
 }
@@ -154,8 +155,10 @@ export function buildBankAppDeepLink(
 
   // If transfer details with beneficiary account and bank are available, use Napas VietQR Universal Deep Link
   if (transferDetails?.accountNumber && (transferDetails.bankBin || transferDetails.bankCode)) {
-    const targetBankIdentifier = transferDetails.bankBin || transferDetails.bankCode!.toLowerCase();
+    // Napas / VietQR expects the beneficiary bank code (e.g. shbvn, mb, vcb, or bank BIN e.g. 970424)
+    const targetBankIdentifier = (transferDetails.bankCode || transferDetails.bankBin)!.toLowerCase();
     const ba = `${transferDetails.accountNumber}@${targetBankIdentifier}`;
+    
     const params = new URLSearchParams({
       app: appId,
       ba: ba,
@@ -167,6 +170,15 @@ export function buildBankAppDeepLink(
 
     if (transferDetails.memo && transferDetails.memo.trim()) {
       params.set("tn", transferDetails.memo.trim());
+    }
+
+    if (transferDetails.accountHolderName && transferDetails.accountHolderName.trim()) {
+      params.set("bn", transferDetails.accountHolderName.trim());
+    }
+
+    // Callback URL to bring user back to FlowPocket after transaction
+    if (typeof window !== "undefined") {
+      params.set("url", window.location.origin);
     }
 
     // https://dl.vietqr.io/pay triggers universal app-to-app launch with pre-filled fields
