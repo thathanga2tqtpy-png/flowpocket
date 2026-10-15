@@ -143,6 +143,24 @@ export interface BankTransferDetails {
 }
 
 /**
+ * Sanitize transaction note strictly according to Napas VietQR specification:
+ * - Unaccented Latin characters (A-Z, a-z, 0-9)
+ * - No special characters or accented Vietnamese
+ * - Max length 25 characters (recommended 19)
+ */
+export function sanitizeTransactionNote(str?: string | null): string {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 20);
+}
+
+/**
  * Generate VietQR App-to-App deep link that opens the bank app
  * and PRE-FILLS all transfer fields (beneficiary account, bank, amount, memo)
  * exactly like Zalo / Banking QR scanner does.
@@ -157,7 +175,8 @@ export function buildBankAppDeepLink(
   if (transferDetails?.accountNumber && (transferDetails.bankBin || transferDetails.bankCode)) {
     // Napas / VietQR expects the beneficiary bank code (e.g. shbvn, mb, vcb, or bank BIN e.g. 970424)
     const targetBankIdentifier = (transferDetails.bankCode || transferDetails.bankBin)!.toLowerCase();
-    const ba = `${transferDetails.accountNumber}@${targetBankIdentifier}`;
+    const cleanAccount = transferDetails.accountNumber.replace(/[^a-zA-Z0-9]/g, "");
+    const ba = `${cleanAccount}@${targetBankIdentifier}`;
     
     const params = new URLSearchParams({
       app: appId,
@@ -168,12 +187,16 @@ export function buildBankAppDeepLink(
       params.set("am", Math.round(transferDetails.amount).toString());
     }
 
-    if (transferDetails.memo && transferDetails.memo.trim()) {
-      params.set("tn", transferDetails.memo.trim());
+    const cleanNote = sanitizeTransactionNote(transferDetails.memo);
+    if (cleanNote) {
+      params.set("tn", cleanNote);
     }
 
     if (transferDetails.accountHolderName && transferDetails.accountHolderName.trim()) {
-      params.set("bn", transferDetails.accountHolderName.trim());
+      const cleanName = sanitizeTransactionNote(transferDetails.accountHolderName);
+      if (cleanName) {
+        params.set("bn", cleanName);
+      }
     }
 
     // Callback URL to bring user back to FlowPocket after transaction
