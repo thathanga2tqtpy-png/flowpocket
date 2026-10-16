@@ -131,6 +131,16 @@ export const POPULAR_BANK_APPS: BankAppScheme[] = [
     vietqrAppId: "zalopay",
     primaryColor: "bg-blue-500 text-white",
   },
+  {
+    code: "SHBVN",
+    name: "Shinhan SOL Việt Nam",
+    shortName: "Shinhan Bank",
+    scheme: "shinhansolvietnam://",
+    vietqrAppId: "shbvn",
+    androidPackage: "com.shinhan.smartcarevn",
+    iosAppStoreId: "1456184967",
+    primaryColor: "bg-sky-600 text-white",
+  },
 ];
 
 export interface BankTransferDetails {

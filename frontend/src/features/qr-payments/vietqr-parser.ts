@@ -4,6 +4,7 @@ export interface ParsedVietQR {
   bankCode: string | null;
   bankName: string | null;
   accountNumber: string | null;
+  accountHolderName?: string | null;
   amount: number | null;
   memo: string | null;
   rawPayload: string;
@@ -101,6 +102,7 @@ export function parseVietQRPayload(rawPayload: string): ParsedVietQR {
     bankCode: null,
     bankName: null,
     accountNumber: null,
+    accountHolderName: null,
     amount: null,
     memo: null,
     rawPayload: clean,
@@ -131,6 +133,11 @@ export function parseVietQRPayload(rawPayload: string): ParsedVietQR {
     if (!isNaN(parsedAmount) && parsedAmount > 0) {
       result.amount = parsedAmount;
     }
+  }
+
+  // Tag 59: Merchant / Beneficiary Name
+  if (tlv["59"]) {
+    result.accountHolderName = tlv["59"].trim();
   }
 
   // Tag 62: Additional Data (Memo in Sub-tag 08)

@@ -8,6 +8,8 @@ import {
   Scan,
   QrCode,
   ArrowLeftRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { FinancialSummary } from "../types";
 
@@ -19,6 +21,10 @@ interface PersonalAssetBannerProps {
   onOpenQrModal: () => void;
   onOpenTransferModal: () => void;
   formatVND: (amount: number) => string;
+  isAllHidden?: boolean;
+  onToggleAllHidden?: () => void;
+  isTotalRevealed?: boolean;
+  onToggleTotalRevealed?: () => void;
 }
 
 export function PersonalAssetBanner({
@@ -29,27 +35,74 @@ export function PersonalAssetBanner({
   onOpenQrModal,
   onOpenTransferModal,
   formatVND,
+  isAllHidden = false,
+  onToggleAllHidden,
+  isTotalRevealed = false,
+  onToggleTotalRevealed,
 }: PersonalAssetBannerProps) {
   const walletsCount = summary?.wallets.length || 0;
+  // Số dư tổng được hiển thị khi không ở chế độ ẩn toàn bộ HOẶC người dùng bấm riêng con mắt để xem
+  const showTotal = !isAllHidden || isTotalRevealed;
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
       {/* Asset Headline Numbers */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
-            Tổng tài sản khả dụng
-          </span>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+              Tổng tài sản khả dụng
+            </span>
+            {onToggleTotalRevealed && (
+              <button
+                type="button"
+                onClick={onToggleTotalRevealed}
+                className="p-1 -m-1 text-slate-400 hover:text-slate-600 rounded-md transition cursor-pointer"
+                title={showTotal ? "Ẩn tổng số dư" : "Hiện tổng số dư"}
+                aria-label={showTotal ? "Ẩn tổng số dư" : "Hiện tổng số dư"}
+              >
+                {showTotal ? (
+                  <EyeOff className="h-3.5 w-3.5" />
+                ) : (
+                  <Eye className="h-3.5 w-3.5" />
+                )}
+              </button>
+            )}
+            {onToggleAllHidden && (
+              <button
+                type="button"
+                onClick={onToggleAllHidden}
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition cursor-pointer flex items-center gap-1 ${
+                  isAllHidden
+                    ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                    : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                }`}
+                title={isAllHidden ? "Bấm để hiện nhanh toàn bộ số dư ví" : "Bấm để ẩn nhanh toàn bộ số dư ví"}
+              >
+                {isAllHidden ? (
+                  <>
+                    <Eye className="h-3 w-3" />
+                    <span>Hiện tất cả</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-3 w-3" />
+                    <span>Ẩn tất cả</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
           <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight block">
-            {summary ? formatVND(summary.total_assets) : "0 đ"}
+            {showTotal ? (summary ? formatVND(summary.total_assets) : "0 đ") : "•••••••• đ"}
           </span>
           <div className="flex items-center gap-2.5 text-xs font-semibold mt-1.5 flex-wrap">
             <span className="text-emerald-600 flex items-center gap-1 whitespace-nowrap">
-              <TrendingUp className="h-3.5 w-3.5" /> Thu: +{summary ? formatVND(summary.total_income) : "0 đ"}
+              <TrendingUp className="h-3.5 w-3.5" /> Thu: {showTotal ? `+${summary ? formatVND(summary.total_income) : "0 đ"}` : "••••••"}
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-rose-600 flex items-center gap-1 whitespace-nowrap">
-              <TrendingDown className="h-3.5 w-3.5" /> Chi: -{summary ? formatVND(summary.total_expense) : "0 đ"}
+              <TrendingDown className="h-3.5 w-3.5" /> Chi: {showTotal ? `-${summary ? formatVND(summary.total_expense) : "0 đ"}` : "••••••"}
             </span>
           </div>
         </div>

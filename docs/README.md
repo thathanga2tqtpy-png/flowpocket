@@ -24,7 +24,8 @@ Bộ tài liệu này là nguồn mô tả thống nhất để người phát t
 7. [`06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md`](06_CAU_TRUC_MODULAR_VA_HIEU_NANG.md) — cấu trúc module hóa backend service, phân rã component, chuẩn hóa Services & Custom Hooks Layer (S-H-C-T) và chuẩn kế toán Net Expense.
 8. [`07_NHAN_TIEN_QR_VA_DOI_SOAT.md`](07_NHAN_TIEN_QR_VA_DOI_SOAT.md) — thiết kế thanh toán QR Napas VietQR và đối soát chênh lệch.
 9. [`08_HUONG_DAN_DEPLOY_VERCEL_VPS.md`](08_HUONG_DAN_DEPLOY_VERCEL_VPS.md) — hướng dẫn chi tiết triển khai Frontend (Vercel) + Backend (VPS Docker) + Domain miễn phí (DuckDNS) & SSL HTTPS.
-10. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.
+10. [`09_SO_SANH_FLOWPOCKET_VA_MOMO.md`](09_SO_SANH_FLOWPOCKET_VA_MOMO.md) — phân tích đối đầu giữa FlowPocket và MoMo (ưu thế cạnh tranh, nhược điểm và lộ trình khắc phục).
+11. [`AGENT_IMPLEMENTATION_PROMPT.md`](AGENT_IMPLEMENTATION_PROMPT.md) — prompt chính để giao cho Antigravity hoặc coding agent.
 
 
 ## Quy ước quan trọng

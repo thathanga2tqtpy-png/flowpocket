@@ -71,6 +71,70 @@ export function PersonalDashboard() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
 
+  // Trạng thái ẩn/hiển thị số dư (bảo mật riêng tư)
+  const [isAllHidden, setIsAllHidden] = useState(false);
+  const [isTotalRevealed, setIsTotalRevealed] = useState(false);
+  const [revealedWalletIds, setRevealedWalletIds] = useState<Record<string, boolean>>({});
+
+  // Đọc thiết lập ban đầu từ localStorage nếu có
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("flowpocket_hide_balances");
+      if (saved !== null) {
+        setIsAllHidden(saved === "true");
+      }
+    } catch {
+      // Bỏ qua lỗi truy cập localStorage nếu môi trường bị hạn chế
+    }
+  }, []);
+
+  // Bật/tắt chế độ ẩn toàn bộ (Quick toggle all)
+  const handleToggleAllHidden = () => {
+    setIsAllHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("flowpocket_hide_balances", String(next));
+      } catch {
+        // Bỏ qua
+      }
+      // Khi bấm nút tổng thì reset trạng thái con mắt riêng lẻ
+      setIsTotalRevealed(false);
+      setRevealedWalletIds({});
+      return next;
+    });
+  };
+
+  // Bật/tắt xem riêng tổng số dư
+  const handleToggleTotalRevealed = () => {
+    if (!isAllHidden) {
+      // Nếu đang không ẩn toàn bộ mà người dùng bấm con mắt ở tổng, chuyển sang ẩn toàn bộ
+      setIsAllHidden(true);
+      setIsTotalRevealed(false);
+      try {
+        localStorage.setItem("flowpocket_hide_balances", "true");
+      } catch {}
+    } else {
+      setIsTotalRevealed((prev) => !prev);
+    }
+  };
+
+  // Bật/tắt xem riêng từng ví
+  const handleToggleWalletRevealed = (walletId: string) => {
+    if (!isAllHidden) {
+      // Nếu đang không ẩn toàn bộ mà bấm con mắt ở ví, đưa vào chế độ ẩn toàn bộ ngoại trừ ví này
+      setIsAllHidden(true);
+      setRevealedWalletIds({ [walletId]: false });
+      try {
+        localStorage.setItem("flowpocket_hide_balances", "true");
+      } catch {}
+    } else {
+      setRevealedWalletIds((prev) => ({
+        ...prev,
+        [walletId]: !prev[walletId],
+      }));
+    }
+  };
+
   const formatVND = (amount: number) => {
     return amount.toLocaleString("vi-VN") + " đ";
   };
@@ -171,6 +235,10 @@ export function PersonalDashboard() {
             onOpenQrModal={() => setQrModalOpen(true)}
             onOpenTransferModal={() => setTransferModalOpen(true)}
             formatVND={formatVND}
+            isAllHidden={isAllHidden}
+            onToggleAllHidden={handleToggleAllHidden}
+            isTotalRevealed={isTotalRevealed}
+            onToggleTotalRevealed={handleToggleTotalRevealed}
           />
 
           <PendingExpensesCard
@@ -192,6 +260,10 @@ export function PersonalDashboard() {
               setWalletModalOpen(true);
             }}
             formatVND={formatVND}
+            isAllHidden={isAllHidden}
+            onToggleAllHidden={handleToggleAllHidden}
+            revealedWalletIds={revealedWalletIds}
+            onToggleWalletRevealed={handleToggleWalletRevealed}
           />
 
           <PersonalTransactionList
